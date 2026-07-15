@@ -42,3 +42,6 @@ next-env.d.ts
 
 # playwright mcp session artifacts
 .playwright-mcp/
+
+# supabase cli scratch files
+supabase/.temp/
