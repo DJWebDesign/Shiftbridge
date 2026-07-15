@@ -416,15 +416,18 @@ export async function POST() {
 
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
 
-    // Insert demo_sessions row
+    // Insert demo_sessions row — MUST succeed, or cleanup can never find this session
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any).from('demo_sessions').insert({
+    const { error: sessionInsertErr } = await (admin as any).from('demo_sessions').insert({
       auth_user_id: userId,
       agency_id: session.agencyId,
       facility_id: session.facilityId,
       nurse_profile_ids: session.nurseProfileIds,
       expires_at: expiresAt,
     })
+    if (sessionInsertErr) {
+      throw new Error(`demo_sessions insert failed (is migration 006 applied?): ${sessionInsertErr.message}`)
+    }
 
     return NextResponse.json({ email, password, agencyId: session.agencyId, facilityId: session.facilityId })
   } catch (err) {

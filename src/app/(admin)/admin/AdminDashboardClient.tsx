@@ -34,6 +34,7 @@ interface Props {
   connections: ConnectionRow[]
   demoSessions: DemoSessionRow[]
   activeDemoCount: number
+  initialTab?: 'accounts' | 'connections' | 'demo'
 }
 
 const ROLE_BADGE: Record<string, string> = {
@@ -52,8 +53,8 @@ const ROLE_LABEL: Record<string, string> = {
 
 type AccountAction = 'suspend' | 'activate' | 'reset_password'
 
-export default function AdminDashboardClient({ accounts, connections, demoSessions, activeDemoCount }: Props) {
-  const [tab, setTab] = useState<'accounts' | 'connections' | 'demo'>('accounts')
+export default function AdminDashboardClient({ accounts, connections, demoSessions, activeDemoCount, initialTab }: Props) {
+  const [tab, setTab] = useState<'accounts' | 'connections' | 'demo'>(initialTab ?? 'accounts')
   const [demoSessions2, setDemoSessions2] = useState<DemoSessionRow[]>(demoSessions)
   const [cleanupStatus, setCleanupStatus] = useState<string | null>(null)
   const [cleanupLoading, setCleanupLoading] = useState(false)
