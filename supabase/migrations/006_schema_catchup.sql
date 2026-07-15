@@ -27,7 +27,10 @@ ALTER TABLE agencies ADD COLUMN IF NOT EXISTS house_for_facility_id UUID REFEREN
 ALTER TABLE facilities ADD COLUMN IF NOT EXISTS facility_notes TEXT;
 ALTER TABLE placeholder_facilities ADD COLUMN IF NOT EXISTS facility_notes TEXT;
 
--- Rebuild demo_sessions with the shape /api/demo/launch and /api/demo/cleanup expect
+-- Rebuild demo_sessions with the shape /api/demo/launch and /api/demo/cleanup expect.
+-- analytics_events.demo_session_id has an FK to demo_sessions (001), which blocks
+-- a plain DROP — detach it first, then re-attach it to the rebuilt table.
+ALTER TABLE analytics_events DROP CONSTRAINT IF EXISTS analytics_events_demo_session_id_fkey;
 DROP TABLE IF EXISTS demo_sessions;
 CREATE TABLE demo_sessions (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -38,3 +41,10 @@ CREATE TABLE demo_sessions (
   created_at        TIMESTAMPTZ DEFAULT now(),
   expires_at        TIMESTAMPTZ NOT NULL
 );
+
+-- Any demo_session_id values in analytics_events reference the dropped table's
+-- rows and are meaningless — null them before re-adding the constraint.
+UPDATE analytics_events SET demo_session_id = NULL WHERE demo_session_id IS NOT NULL;
+ALTER TABLE analytics_events
+  ADD CONSTRAINT analytics_events_demo_session_id_fkey
+  FOREIGN KEY (demo_session_id) REFERENCES demo_sessions(id) ON DELETE SET NULL;
