@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftBridge — Connecting Healthcare Shifts</title>
+  <meta name="description" content="ShiftBridge replaces phone tag and spreadsheets between staffing agencies and healthcare facilities with a real-time platform where credentialed nurses claim shifts in minutes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+
+  <!--
+    LOGO NOTE:
+    The logo references /screenshots/logo (2).png which is served from c:\ShiftBridge\public\screenshots\.
+    If the screenshots folder is not inside public/, copy it there:
+      cp -r "c:/ShiftBridge/screenshots" "c:/ShiftBridge/public/screenshots"
+    Or update the src paths below to the correct location.
+  -->
+
+  <style>
+    /* =============================================
+       RESET & BASE
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #0D1B2A;
+      --navy-mid:    #162435;
+      --navy-light:  #1E3347;
+      --teal:        #0D9488;
+      --teal-hi:     #14B8A6;
+      --teal-dim:    rgba(13, 148, 136, 0.10);
+      --teal-rim:    rgba(13, 148, 136, 0.20);
+      --page:        #F4F7FA;
+      --white:       #FFFFFF;
+      --text-1:      #0D1B2A;
+      --text-2:      #4B5D6E;
+      --text-3:      #7B93AB;
+      --border:      #E2EBF0;
+      --border-dark: rgba(255, 255, 255, 0.08);
+      --shadow-sm:   0 1px 3px rgba(13,27,42,.08), 0 1px 2px rgba(13,27,42,.04);
+      --shadow-md:   0 4px 16px rgba(13,27,42,.10), 0 2px 6px rgba(13,27,42,.06);
+      --shadow-lg:   0 16px 48px rgba(13,27,42,.14), 0 4px 12px rgba(13,27,42,.08);
+      --r:           12px;
+      --r-sm:        8px;
+      --r-lg:        20px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-1);
+      background: var(--white);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    img { max-width: 100%; display: block; }
+    a   { text-decoration: none; }
+
+    /* =============================================
+       TYPOGRAPHY
+    ============================================= */
+    h1, h2, h3, h4 {
+      font-family: 'DM Serif Display', serif;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    /* =============================================
+       LAYOUT
+    ============================================= */
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* =============================================
+       SHARED COMPONENTS
+    ============================================= */
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--teal);
+      background: var(--teal-dim);
+      border: 1px solid var(--teal-rim);
+      padding: 5px 13px;
+      border-radius: 100px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--teal);
+      border-radius: 50%;
+      animation: blink 2.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .eyebrow-dark {
+      color: var(--teal-hi);
+      background: rgba(13,148,136,0.12);
+      border-color: rgba(13,148,136,0.22);
+    }
+    .eyebrow-dark .eyebrow-dot { background: var(--teal-hi); }
+
+    .section-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 64px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 44px);
+      color: var(--navy);
+      margin-bottom: 14px;
+    }
+
+    .section-sub {
+      font-size: 17px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    /* =============================================
+       BUTTONS
+    ============================================= */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: var(--r-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .btn-lg { padding: 16px 34px; font-size: 16px; border-radius: var(--r); }
+
+    .btn-teal {
+      background: var(--teal);
+      color: #fff;
+    }
+    .btn-teal:hover {
+      background: var(--teal-hi);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(13,148,136,0.38);
+    }
+
+    .btn-ghost-light {
+      background: rgba(255,255,255,0.09);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .btn-ghost-light:hover {
+      background: rgba(255,255,255,0.16);
+      transform: translateY(-2px);
+    }
+
+    .btn-navy {
+      background: var(--navy);
+      color: #fff;
+    }
+    .btn-navy:hover {
+      background: var(--navy-mid);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(13,27,42,0.3);
+    }
+
+    .btn-outline-teal {
+      background: transparent;
+      color: var(--teal);
+      border: 1.5px solid var(--teal);
+    }
+    .btn-outline-teal:hover {
+      background: var(--teal-dim);
+      transform: translateY(-2px);
+    }
+
+    /* =============================================
+       SCROLL ANIMATIONS
+    ============================================= */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition:
+        opacity  0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .fade-up.in { opacity: 1; transform: translateY(0); }
+    .fade-up.d1 { transition-delay: 0.10s; }
+    .fade-up.d2 { transition-delay: 0.20s; }
+    .fade-up.d3 { transition-delay: 0.30s; }
+    .fade-up.d4 { transition-delay: 0.40s; }
+    .fade-up.d5 { transition-delay: 0.50s; }
+
+    /* =============================================
+       NAVBAR
+    ============================================= */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 22px 0;
+      transition: background 0.35s, box-shadow 0.35s, padding 0.35s, backdrop-filter 0.35s;
+    }
+
+    .nav.scrolled {
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 1px 0 var(--border);
+      padding: 14px 0;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo img {
+      height: 38px;
+      width: auto;
+    }
+
+    /* text fallback if logo fails to load */
+    .nav-logo-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -0.02em;
+      transition: color 0.3s;
+      display: none;
+    }
+    .nav-logo-text em { color: var(--teal-hi); font-style: normal; }
+    .nav.scrolled .nav-logo-text { color: var(--navy); }
+
+    .nav-actions { display: flex; align-items: center; gap: 6px; }
+
+    .nav-signin {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      padding: 8px 16px;
+      border-radius: var(--r-sm);
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-signin:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .nav.scrolled .nav-signin { color: var(--text-2); }
+    .nav.scrolled .nav-signin:hover { color: var(--text-1); background: var(--page); }
+
+    .nav-cta {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--teal);
+      padding: 9px 20px;
+      border-radius: var(--r-sm);
+      transition: all 0.2s;
+    }
+    .nav-cta:hover {
+      background: var(--teal-hi);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(13,148,136,0.38);
+    }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    .hero {
+      background-color: var(--navy);
+      background-image:
+        radial-gradient(ellipse 75% 55% at 70% 50%, rgba(13,148,136,0.10) 0%, transparent 60%),
+        linear-gradient(rgba(13,148,136,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13,148,136,0.035) 1px, transparent 1px);
+      background-size: 100% 100%, 52px 52px, 52px 52px;
+      padding: 150px 0 90px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* soft glow top-right */
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -80px; right: -60px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(13,148,136,0.14) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- hero copy ---- */
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--teal-hi);
+      background: rgba(13,148,136,0.12);
+      border: 1px solid rgba(13,148,136,0.22);
+      padding: 5px 13px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .hero-h1 {
+      font-size: clamp(38px, 5.5vw, 66px);
+      color: #fff;
+      margin-bottom: 22px;
+      line-height: 1.08;
+    }
+
+    .hero-h1 em {
+      color: var(--teal-hi);
+      font-style: italic;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: rgba(255,255,255,0.62);
+      line-height: 1.68;
+      margin-bottom: 38px;
+      max-width: 490px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .hero-note {
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.01em;
+    }
+
+    /* ---- hero mockup ---- */
+    .hero-visual {
+      position: relative;
+    }
+
+    .mockup-shell {
+      background: #0F1E2F;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 40px 100px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(255,255,255,0.04);
+      position: relative;
+    }
+
+    /* browser chrome */
+    .mockup-chrome {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 16px;
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(255,255,255,0.055);
+    }
+
+    .chrome-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .chrome-dot:nth-child(1) { background: #FF5F57; }
+    .chrome-dot:nth-child(2) { background: #FEBC2E; }
+    .chrome-dot:nth-child(3) { background: #28C840; }
+
+    .chrome-bar {
+      margin-left: 10px;
+      flex: 1;
+      max-width: 200px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 5px;
+      padding: 3px 12px;
+      font-size: 10.5px;
+      color: rgba(255,255,255,0.22);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* app layout */
+    .mockup-app {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      min-height: 340px;
+    }
+
+    .mockup-side {
+      background: var(--navy);
+      padding: 14px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border-right: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .m-nav {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .m-nav.active {
+      background: rgba(13,148,136,0.14);
+      border-left: 2.5px solid var(--teal);
+      border-radius: 0 9px 9px 0;
+    }
+
+    .m-nav svg {
+      width: 15px; height: 15px;
+      stroke: rgba(255,255,255,0.28);
+      fill: none;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .m-nav.active svg { stroke: var(--teal-hi); }
+
+    .m-logo {
+      width: 28px; height: 28px;
+      margin-bottom: 10px;
+    }
+
+    .mockup-main { padding: 14px; }
+
+    /* stat row */
+    .m-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .m-stat {
+      background: rgba(255,255,255,0.038);
+      border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 7px;
+      padding: 9px 9px 7px;
+    }
+
+    .m-stat-n {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .m-stat-n.teal { color: var(--teal-hi); }
+    .m-stat-n.amber { color: #FBB040; }
+
+    .m-stat-l {
+      font-size: 8.5px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* calendar */
+    .m-cal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .m-cal-title {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.65);
+    }
+
+    .m-cal-nav {
+      font-size: 8.5px;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.08em;
+    }
+
+    .m-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2.5px;
+    }
+
+    .m-lbl {
+      font-size: 7.5px;
+      color: rgba(255,255,255,0.25);
+      text-align: center;
+      text-transform: uppercase;
+      padding-bottom: 3px;
+    }
+
+    .m-cell {
+      aspect-ratio: 1;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: rgba(255,255,255,0.45);
+      cursor: default;
+    }
+
+    .m-cell.on {
+      background: rgba(13,148,136,0.09);
+      border: 1px solid rgba(13,148,136,0.18);
+      color: rgba(255,255,255,0.75);
+    }
+
+    .m-cell.today {
+      box-shadow: inset 0 0 0 1.5px var(--teal);
+      color: var(--teal-hi);
+      font-weight: 700;
+    }
+
+    .m-dots { display: flex; gap: 2px; margin-top: 1px; }
+
+    .m-dot {
+      width: 3.5px; height: 3.5px;
+      border-radius: 50%;
+    }
+    .m-dot.g { background: #22C55E; }
+    .m-dot.r { background: #EF4444; }
+    .m-dot.a { background: #F59E0B; }
+
+    /* floating notification card */
+    .float-card {
+      position: absolute;
+      bottom: -18px;
+      right: -22px;
+      background: #fff;
+      border-radius: 13px;
+      padding: 12px 16px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.32), 0 0 0 1px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 200px;
+      animation: floatUp 4s ease-in-out infinite;
+    }
+
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+
+    .float-icon {
+      width: 36px; height: 36px;
+      background: var(--teal-dim);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .float-icon svg {
+      width: 18px; height: 18px;
+      stroke: var(--teal);
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .float-text { font-size: 12.5px; font-weight: 600; color: var(--navy); }
+    .float-sub  { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
+
+    /* second float card - credential alert */
+    .float-card-2 {
+      position: absolute;
+      top: 30px;
+      left: -22px;
+      background: #fff;
+      border-radius: 13px;
+      padding: 10px 14px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      animation: floatUp 5s ease-in-out infinite 1s;
+    }
+
+    .float-card-2 .badge-pill {
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--teal);
+      border-radius: 5px;
+      padding: 3px 8px;
+      letter-spacing: 0.03em;
+    }
+
+    .float-card-2 .badge-text { font-size: 11px; color: var(--navy); font-weight: 600; }
+    .float-card-2 .badge-sub  { font-size: 9.5px; color: var(--text-3); }
+
+    /* =============================================
+       STATS BAR
+    ============================================= */
+    .stats-bar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 44px 0;
+    }
+
+    .stats-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 0 24px;
+      position: relative;
+    }
+
+    .stat-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 1px; height: 44px;
+      background: var(--border);
+    }
+
+    .stat-n {
+      font-family: 'DM Serif Display', serif;
+      font-size: 46px;
+      line-height: 1;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+
+    .stat-n .hi { color: var(--teal); }
+
+    .stat-l {
+      font-size: 14px;
+      color: var(--text-2);
+    }
+
+    /* =============================================
+       PROBLEM / SOLUTION
+    ============================================= */
+    .problem { background: var(--page); padding: 104px 0; }
+
+    .p-grid {
+      display: grid;
+      grid-template-columns: 1fr 64px 1fr;
+      gap: 0;
+      align-items: start;
+    }
+
+    .p-col {
+      background: #fff;
+      border-radius: var(--r-lg);
+      padding: 36px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .p-col-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .p-icon-wrap {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .p-icon-wrap.bad  { background: #FEF2F2; }
+    .p-icon-wrap.good { background: var(--teal-dim); }
+
+    .p-col-label { font-size: 13px; font-weight: 600; }
+    .p-col-label.bad  { color: #B91C1C; }
+    .p-col-label.good { color: var(--teal); }
+    .p-col-sub  { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+
+    .p-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 11px;
+      border-radius: 9px;
+      margin-bottom: 8px;
+    }
+    .p-item.bad  { background: #FFFBFB; }
+    .p-item.good { background: rgba(13,148,136,0.03); }
+
+    .p-item-mark {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .p-item-mark.bad  { background: #FEE2E2; color: #DC2626; }
+    .p-item-mark.good { background: rgba(13,148,136,0.12); color: var(--teal); }
+
+    .p-item-body { font-size: 13.5px; color: var(--text-2); line-height: 1.52; }
+    .p-item-body strong { color: var(--text-1); font-weight: 600; }
+
+    /* VS divider column */
+    .p-vs-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 44px;
+      gap: 14px;
+      align-self: stretch;
+    }
+
+    .p-vs-line {
+      width: 1px;
+      flex: 1;
+      background: linear-gradient(to bottom, transparent, var(--border) 15%, var(--border) 85%, transparent);
+    }
+
+    .p-vs-badge {
+      width: 42px; height: 42px;
+      background: var(--navy);
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    /* =============================================
+       HOW IT WORKS
+    ============================================= */
+    .how { background: #fff; padding: 104px 0; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+      margin-top: 64px;
+    }
+
+    /* connecting line between steps */
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 31px;
+      left: calc(16.67% + 31px);
+      right: calc(16.67% + 31px);
+      height: 1px;
+      background: linear-gradient(90deg, var(--teal) 0%, rgba(13,148,136,0.15) 100%);
+      z-index: 0;
+    }
+
+    .step { text-align: center; padding: 0 36px; }
+
+    .step-num {
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px;
+      margin: 0 auto 26px;
+      position: relative; z-index: 1;
+      box-shadow: 0 0 0 8px #fff, 0 0 0 9px var(--border);
+      transition: transform 0.25s;
+    }
+    .step-num:hover { transform: scale(1.08); }
+
+    .step:nth-child(1) .step-num { background: var(--teal); color: #fff; }
+    .step:nth-child(2) .step-num { background: var(--navy); color: #fff; }
+    .step:nth-child(3) .step-num {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--navy) 100%);
+      color: #fff;
+    }
+
+    .step h3 {
+      font-size: 22px;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+
+    .step p {
+      font-size: 14.5px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    .step-ph {
+      margin-top: 22px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--r-sm);
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--page);
+      transition: border-color 0.2s;
+    }
+    .step-ph:hover { border-color: var(--teal-rim); }
+
+    .ph-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-3);
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 5px 14px;
+      border-radius: 100px;
+    }
+
+    .ph-hint { font-size: 10.5px; color: var(--text-3); }
+
+    /* =============================================
+       FEATURES
+    ============================================= */
+    .features { background: var(--page); padding: 104px 0; }
+
+    .f-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 64px;
+    }
+
+    .f-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .f-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--teal);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .f-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(13,148,136,0.18);
+    }
+    .f-card:hover::before { transform: scaleX(1); }
+
+    .f-icon {
+      width: 48px; height: 48px;
+      background: var(--teal-dim);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .f-icon svg {
+      width: 22px; height: 22px;
+      stroke: var(--teal);
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .f-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 19px;
+      color: var(--navy);
+      margin-bottom: 10px;
+    }
+
+    .f-body {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    /* =============================================
+       SCREENSHOT PLACEHOLDERS (full-width)
+    ============================================= */
+    .ph-section { background: #fff; padding: 80px 0; }
+    .ph-section.alt { background: var(--page); }
+
+    .ph-full {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-lg);
+      min-height: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--page);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .ph-full:hover { border-color: var(--teal-rim); }
+
+    .ph-full::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(13,148,136,0.025) 0%, transparent 50%, rgba(13,27,42,0.015) 100%);
+    }
+
+    .ph-badge {
+      position: relative; z-index: 1;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-3);
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 9px 22px;
+      border-radius: 100px;
+    }
+
+    .ph-note {
+      position: relative; z-index: 1;
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    /* =============================================
+       ROLES (dark section)
+    ============================================= */
+    .roles {
+      background: var(--navy);
+      padding: 104px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .roles::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(13,148,136,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13,148,136,0.04) 1px, transparent 1px);
+      background-size: 52px 52px;
+      pointer-events: none;
+    }
+
+    .roles .section-title { color: #fff; }
+    .roles .section-sub   { color: rgba(255,255,255,0.52); }
+
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 64px;
+      position: relative; z-index: 1;
+    }
+
+    .r-card {
+      background: rgba(255,255,255,0.038);
+      border: 1px solid rgba(255,255,255,0.075);
+      border-radius: var(--r-lg);
+      padding: 36px;
+      transition: all 0.25s ease;
+    }
+
+    .r-card:hover {
+      background: rgba(255,255,255,0.065);
+      border-color: rgba(13,148,136,0.28);
+      transform: translateY(-5px);
+    }
+
+    .r-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: rgba(13,148,136,0.12);
+      border: 1px solid rgba(13,148,136,0.22);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .r-icon svg {
+      width: 24px; height: 24px;
+      stroke: var(--teal-hi);
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .r-eyebrow {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal-hi);
+      margin-bottom: 8px;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .r-headline {
+      font-size: 26px;
+      color: #fff;
+      margin-bottom: 18px;
+      line-height: 1.2;
+    }
+
+    .r-rule {
+      width: 32px; height: 2px;
+      background: var(--teal);
+      margin-bottom: 20px;
+    }
+
+    .r-list { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+
+    .r-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.68);
+      line-height: 1.5;
+    }
+
+    .r-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(13,148,136,0.14);
+      border: 1px solid rgba(13,148,136,0.28);
+      flex-shrink: 0;
+      margin-top: 2px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .r-check svg {
+      width: 9px; height: 9px;
+      stroke: var(--teal-hi);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* =============================================
+       CTA SECTION
+    ============================================= */
+    .cta-sec {
+      background: var(--page);
+      padding: 104px 0;
+    }
+
+    .cta-inner {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .cta-inner .eyebrow { margin-bottom: 20px; }
+
+    .cta-title {
+      font-size: clamp(30px, 4.5vw, 52px);
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+
+    .cta-sub {
+      font-size: 18px;
+      color: var(--text-2);
+      margin-bottom: 40px;
+      line-height: 1.65;
+    }
+
+    .cta-btns { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
+
+    .cta-note { margin-top: 20px; font-size: 12.5px; color: var(--text-3); }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    .footer {
+      background: var(--navy);
+      padding: 58px 0 36px;
+      border-top: 1px solid rgba(255,255,255,0.055);
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 48px;
+    }
+
+    .footer-logo img { height: 34px; width: auto; margin-bottom: 10px; }
+
+    .footer-tagline { font-size: 13px; color: rgba(255,255,255,0.35); }
+
+    .footer-links { display: flex; gap: 30px; padding-top: 4px; }
+
+    .footer-links a {
+      font-size: 14px;
+      color: rgba(255,255,255,0.48);
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: #fff; }
+
+    .footer-bottom {
+      padding-top: 30px;
+      border-top: 1px solid rgba(255,255,255,0.055);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-copy { font-size: 12.5px; color: rgba(255,255,255,0.28); }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 960px) {
+      .hero-inner      { grid-template-columns: 1fr; }
+      .hero-visual     { display: none; }
+      .p-grid          { grid-template-columns: 1fr; }
+      .p-vs-col        { flex-direction: row; padding: 20px 0; gap: 12px; }
+      .p-vs-line       { width: 100%; height: 1px; flex: 1; }
+      .steps           { grid-template-columns: 1fr; }
+      .steps::before   { display: none; }
+      .f-grid          { grid-template-columns: 1fr 1fr; }
+      .roles-grid      { grid-template-columns: 1fr; }
+      .stats-inner     { grid-template-columns: 1fr 1fr; }
+      .stat-item:nth-child(2)::after,
+      .stat-item:nth-child(4)::after { display: none; }
+      .footer-top      { flex-direction: column; gap: 28px; }
+      .footer-bottom   { flex-direction: column; gap: 10px; text-align: center; }
+    }
+
+    @media (max-width: 640px) {
+      .f-grid          { grid-template-columns: 1fr; }
+      .hero-ctas       { flex-direction: column; align-items: flex-start; }
+      .cta-btns        { flex-direction: column; align-items: center; }
+      .nav-signin      { display: none; }
+      .footer-links    { flex-wrap: wrap; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ================================================
+     NAVBAR
+================================================ -->
+<nav class="nav" id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <img
+          src="/screenshots/logo (2).png"
+          alt="ShiftBridge"
+          onerror="this.style.display='none'; document.querySelector('.nav-logo-text').style.display='block'">
+        <span class="nav-logo-text"><strong>Shift</strong><em>Bridge</em></span>
+      </a>
+      <div class="nav-actions">
+        <a href="/login" class="nav-signin">Sign In</a>
+        <a href="/signup" class="nav-cta">Get Started →</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ================================================
+     HERO
+================================================ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- Copy -->
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span class="eyebrow-dot"></span>
+          Per Diem Nursing · Real-Time Staffing
+        </div>
+        <h1 class="hero-h1">
+          Fill every shift.<br>
+          <em>Trust every nurse.</em>
+        </h1>
+        <p class="hero-sub">
+          ShiftBridge replaces phone tag and spreadsheets between staffing agencies and healthcare facilities — with a real-time platform where credentialed nurses claim shifts in minutes.
+        </p>
+        <div class="hero-ctas">
+          <a href="/signup" class="btn btn-teal btn-lg">I'm a Staffing Agency →</a>
+          <a href="/signup" class="btn btn-ghost-light btn-lg">I'm a Healthcare Facility</a>
+        </div>
+        <p class="hero-note">No credit card required &nbsp;·&nbsp; Free to get started &nbsp;·&nbsp; Setup in minutes</p>
+      </div>
+
+      <!-- CSS Dashboard Mockup -->
+      <div class="hero-visual">
+
+        <!-- Secondary float: credential confirmed -->
+        <div class="float-card-2">
+          <div>
+            <div class="badge-pill">RN</div>
+          </div>
+          <div>
+            <div class="badge-text">License verified ✓</div>
+            <div class="badge-sub">CPR · TB · COVID current</div>
+          </div>
+        </div>
+
+        <div class="mockup-shell">
+          <div class="mockup-chrome">
+            <div class="chrome-dot"></div>
+            <div class="chrome-dot"></div>
+            <div class="chrome-dot"></div>
+            <div class="chrome-bar">app.shiftbridge.io/agency</div>
+          </div>
+          <div class="mockup-app">
+            <!-- Sidebar -->
+            <div class="mockup-side">
+              <svg class="m-logo" viewBox="0 0 28 28" fill="none">
+                <rect width="28" height="28" rx="6" fill="#0D9488" fill-opacity="0.18"/>
+                <path d="M5 19 Q14 9 23 19" stroke="#14B8A6" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              </svg>
+              <!-- Dashboard -->
+              <div class="m-nav active">
+                <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+              </div>
+              <!-- Staff -->
+              <div class="m-nav">
+                <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="2.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+              </div>
+              <!-- Calendar -->
+              <div class="m-nav">
+                <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5"/><path d="M5 1.5v2M11 1.5v2M1.5 6.5h13"/></svg>
+              </div>
+              <!-- Settings -->
+              <div class="m-nav">
+                <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+              </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="mockup-main">
+              <div class="m-stats">
+                <div class="m-stat">
+                  <div class="m-stat-n teal">24</div>
+                  <div class="m-stat-l">Staff</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-n">48</div>
+                  <div class="m-stat-l">Shifts</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-n amber">3</div>
+                  <div class="m-stat-l">Alerts</div>
+                </div>
+              </div>
+
+              <div class="m-cal-head">
+                <span class="m-cal-title">April 2026</span>
+                <span class="m-cal-nav">◀ ▶</span>
+              </div>
+
+              <div class="m-grid">
+                <!-- Day labels -->
+                <div class="m-lbl">Mo</div><div class="m-lbl">Tu</div><div class="m-lbl">We</div>
+                <div class="m-lbl">Th</div><div class="m-lbl">Fr</div><div class="m-lbl">Sa</div><div class="m-lbl">Su</div>
+
+                <!-- Row 1 -->
+                <div class="m-cell">1</div>
+                <div class="m-cell on">2<div class="m-dots"><div class="m-dot g"></div></div></div>
+                <div class="m-cell">3</div>
+                <div class="m-cell on">4<div class="m-dots"><div class="m-dot r"></div><div class="m-dot a"></div></div></div>
+                <div class="m-cell">5</div>
+                <div class="m-cell">6</div>
+                <div class="m-cell">7</div>
+
+                <!-- Row 2 -->
+                <div class="m-cell on">8<div class="m-dots"><div class="m-dot g"></div></div></div>
+                <div class="m-cell">9</div>
+                <div class="m-cell on today">10<div class="m-dots"><div class="m-dot g"></div><div class="m-dot g"></div></div></div>
+                <div class="m-cell">11</div>
+                <div class="m-cell on">12<div class="m-dots"><div class="m-dot a"></div></div></div>
+                <div class="m-cell">13</div>
+                <div class="m-cell">14</div>
+
+                <!-- Row 3 -->
+                <div class="m-cell">15</div>
+                <div class="m-cell on">16<div class="m-dots"><div class="m-dot g"></div></div></div>
+                <div class="m-cell">17</div>
+                <div class="m-cell on">18<div class="m-dots"><div class="m-dot r"></div></div></div>
+                <div class="m-cell">19</div>
+                <div class="m-cell">20</div>
+                <div class="m-cell">21</div>
+
+                <!-- Row 4 -->
+                <div class="m-cell on">22<div class="m-dots"><div class="m-dot g"></div><div class="m-dot a"></div></div></div>
+                <div class="m-cell">23</div>
+                <div class="m-cell on">24<div class="m-dots"><div class="m-dot g"></div></div></div>
+                <div class="m-cell">25</div>
+                <div class="m-cell on">26<div class="m-dots"><div class="m-dot g"></div></div></div>
+                <div class="m-cell">27</div>
+                <div class="m-cell">28</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary float: claim notification -->
+        <div class="float-card">
+          <div class="float-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="float-text">Sarah M. claimed shift</div>
+            <div class="float-sub">RN · Oakwood Care · Apr 14</div>
+          </div>
+        </div>
+
+      </div><!-- /hero-visual -->
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     STATS BAR
+================================================ -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-inner">
+      <div class="stat-item fade-up">
+        <div class="stat-n">500<span class="hi">+</span></div>
+        <div class="stat-l">Shifts filled</div>
+      </div>
+      <div class="stat-item fade-up d1">
+        <div class="stat-n">50<span class="hi">+</span></div>
+        <div class="stat-l">Healthcare facilities</div>
+      </div>
+      <div class="stat-item fade-up d2">
+        <div class="stat-n">200<span class="hi">+</span></div>
+        <div class="stat-l">Credentialed nurses</div>
+      </div>
+      <div class="stat-item fade-up d3">
+        <div class="stat-n">&lt;<span class="hi">2</span>min</div>
+        <div class="stat-l">Average time to claim</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     PROBLEM / SOLUTION
+================================================ -->
+<section class="problem">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>The Problem</div>
+      <h2 class="section-title">Staffing shouldn't feel like a fire drill.</h2>
+      <p class="section-sub">Every unfilled shift costs facilities money and puts patient care at risk. The old process is broken by design.</p>
+    </div>
+
+    <div class="p-grid">
+      <!-- Before -->
+      <div class="p-col fade-up d1">
+        <div class="p-col-head">
+          <div class="p-icon-wrap bad">🔥</div>
+          <div>
+            <div class="p-col-label bad">Before ShiftBridge</div>
+            <div class="p-col-sub">The old way</div>
+          </div>
+        </div>
+        <div class="p-item bad">
+          <div class="p-item-mark bad">✕</div>
+          <div class="p-item-body"><strong>Phone trees at 6 AM</strong> — calling through a contact list hoping someone picks up for an urgent open shift</div>
+        </div>
+        <div class="p-item bad">
+          <div class="p-item-mark bad">✕</div>
+          <div class="p-item-body"><strong>Spreadsheets nobody trusts</strong> — nurse availability lists that are always one version behind</div>
+        </div>
+        <div class="p-item bad">
+          <div class="p-item-mark bad">✕</div>
+          <div class="p-item-body"><strong>Credential guessing</strong> — hoping the nurse you're sending has a valid license and current TB test</div>
+        </div>
+        <div class="p-item bad">
+          <div class="p-item-mark bad">✕</div>
+          <div class="p-item-body"><strong>Zero accountability</strong> — missed shifts with no paper trail, billing disputes with no record</div>
+        </div>
+        <div class="p-item bad">
+          <div class="p-item-mark bad">✕</div>
+          <div class="p-item-body"><strong>Billing from memory</strong> — hours logged in notebooks, invoices built from guesswork at month-end</div>
+        </div>
+      </div>
+
+      <!-- VS divider -->
+      <div class="p-vs-col fade-up d2">
+        <div class="p-vs-line"></div>
+        <div class="p-vs-badge">VS</div>
+        <div class="p-vs-line"></div>
+      </div>
+
+      <!-- After -->
+      <div class="p-col fade-up d3">
+        <div class="p-col-head">
+          <div class="p-icon-wrap good">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round"><path d="M3 9.5L7 13.5L15 5.5"/></svg>
+          </div>
+          <div>
+            <div class="p-col-label good">With ShiftBridge</div>
+            <div class="p-col-sub">The new way</div>
+          </div>
+        </div>
+        <div class="p-item good">
+          <div class="p-item-mark good">✓</div>
+          <div class="p-item-body"><strong>Post in under a minute</strong> — facility posts a shift by credential type; nurses see it in real time</div>
+        </div>
+        <div class="p-item good">
+          <div class="p-item-mark good">✓</div>
+          <div class="p-item-body"><strong>Live calendars across every role</strong> — no more "wait, was that shift filled?" for anyone</div>
+        </div>
+        <div class="p-item good">
+          <div class="p-item-mark good">✓</div>
+          <div class="p-item-body"><strong>Credentials front and center</strong> — license, CPR, TB, and COVID tracked with automatic expiry alerts</div>
+        </div>
+        <div class="p-item good">
+          <div class="p-item-mark good">✓</div>
+          <div class="p-item-body"><strong>Complete audit trail</strong> — every claim, confirmation, and cancellation logged with timestamps</div>
+        </div>
+        <div class="p-item good">
+          <div class="p-item-mark good">✓</div>
+          <div class="p-item-body"><strong>One-click CSV export</strong> — hours, pay rates, credentials, and status ready for payroll in seconds</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     HOW IT WORKS
+================================================ -->
+<section class="how">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>How It Works</div>
+      <h2 class="section-title">From open shift to confirmed nurse in three steps.</h2>
+      <p class="section-sub">ShiftBridge handles the handoff between facilities, agencies, and nurses — automatically, at every step.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step fade-up d1">
+        <div class="step-num">1</div>
+        <h3>Post a Shift</h3>
+        <p>Facilities post open shifts by credential type — RN, LPN, CNA, CMA. Agencies can post on behalf of facilities they haven't yet connected. Shifts appear on the calendar the moment they're saved.</p>
+        <div class="step-ph">
+          <span class="ph-label">[ Screenshot: Shift Post Form ]</span>
+          <span class="ph-hint">Drop your screenshot here</span>
+        </div>
+      </div>
+      <div class="step fade-up d2">
+        <div class="step-num">2</div>
+        <h3>Nurses Claim</h3>
+        <p>Qualified nurses see open shifts matching their credential — with drive time estimates from their home address. One tap to claim. Built-in conflict detection prevents double-booking before it happens.</p>
+        <div class="step-ph">
+          <span class="ph-label">[ Screenshot: Nurse Shift Calendar ]</span>
+          <span class="ph-hint">Drop your screenshot here</span>
+        </div>
+      </div>
+      <div class="step fade-up d3">
+        <div class="step-num">3</div>
+        <h3>Confirm & Done</h3>
+        <p>Facility admins review full credential cards for every claimant and confirm with one click. The winning nurse gets an SMS. All other claimants are notified automatically. Zero phone calls required.</p>
+        <div class="step-ph">
+          <span class="ph-label">[ Screenshot: Claim Review Queue ]</span>
+          <span class="ph-hint">Drop your screenshot here</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     FEATURES
+================================================ -->
+<section class="features">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>Platform Features</div>
+      <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+      <p class="section-sub">Built specifically for per diem nursing staffing — not adapted from generic workforce software that wasn't designed for healthcare.</p>
+    </div>
+
+    <div class="f-grid">
+
+      <div class="f-card fade-up d1">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+        </div>
+        <div class="f-title">Real-Time Shift Calendars</div>
+        <p class="f-body">Live month-view calendars for every role. Post a shift and it appears instantly across all dashboards. Status changes propagate in real time — no refresh needed.</p>
+      </div>
+
+      <div class="f-card fade-up d2">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="f-title">Credential Management</div>
+        <p class="f-body">License number, status, and expiry. CPR, TB test date, and COVID vaccination — all tracked per nurse with automatic 30-day expiry warnings. Facilities never confirm a nurse blind.</p>
+      </div>
+
+      <div class="f-card fade-up d3">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <div class="f-title">Drive Time Estimates</div>
+        <p class="f-body">Nurses see "~18 min away" on every shift card before they commit. Calculated from their registered home address via Google Maps — no extra setup required.</p>
+      </div>
+
+      <div class="f-card fade-up d1">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="19" cy="5" r="3" fill="#0D9488" stroke="none"/></svg>
+        </div>
+        <div class="f-title">Smart Notifications</div>
+        <p class="f-body">In-app, SMS, and email — automatically triggered at every step. Claim received, shift confirmed, shift canceled, DNR issued, credential expiring. Nothing slips through.</p>
+      </div>
+
+      <div class="f-card fade-up d2">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+        </div>
+        <div class="f-title">Agency↔Facility Connections</div>
+        <p class="f-body">Agencies build a roster of connected facilities. Smart address matching detects existing relationships automatically. Placeholder facilities bridge the gap for partners not yet on the platform.</p>
+      </div>
+
+      <div class="f-card fade-up d3">
+        <div class="f-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="f-title">CSV Export &amp; Billing</div>
+        <p class="f-body">One-click export of all shift data by month — date, facility, credential, hours worked, tier, pay rate, nurse license number, and late-cancel flags. Payroll-ready, every time.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     SCREENSHOT: AGENCY DASHBOARD
+================================================ -->
+<section class="ph-section">
+  <div class="container">
+    <div class="section-header fade-up" style="margin-bottom: 40px;">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>Agency Dashboard</div>
+      <h2 class="section-title">Your entire operation in one view.</h2>
+      <p class="section-sub">Confirmed shifts, pending coverage, credential alerts, financial snapshots, and staff activity — all on a single screen.</p>
+    </div>
+    <div class="ph-full fade-up d1">
+      <span class="ph-badge">[ Screenshot: Agency Dashboard — Full View ]</span>
+      <span class="ph-note">Replace this area with your actual dashboard screenshot</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     WHO IT'S FOR (dark)
+================================================ -->
+<section class="roles">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="eyebrow eyebrow-dark"><span class="eyebrow-dot"></span>Built for every role</div>
+      <h2 class="section-title">One platform. Three distinct workflows.</h2>
+      <p class="section-sub">Every role gets a purpose-built dashboard — not a watered-down view of someone else's interface.</p>
+    </div>
+
+    <div class="roles-grid">
+
+      <!-- Agencies -->
+      <div class="r-card fade-up d1">
+        <div class="r-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="r-eyebrow">For Staffing Agencies</div>
+        <h3 class="r-headline">Manage your roster.<br>Fill every shift.</h3>
+        <div class="r-rule"></div>
+        <ul class="r-list">
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Track your full nurse roster with credential expiry alerts
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Post shifts for connected facilities and placeholder partners
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Send bulk SMS to nurses by credential type with one action
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Export payroll CSVs at month-end — one click, done
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Financial snapshots: hours logged and estimated agency payout
+          </li>
+        </ul>
+      </div>
+
+      <!-- Facilities -->
+      <div class="r-card fade-up d2">
+        <div class="r-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="r-eyebrow">For Healthcare Facilities</div>
+        <h3 class="r-headline">Post shifts. Confirm<br>with confidence.</h3>
+        <div class="r-rule"></div>
+        <ul class="r-list">
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Post open shifts by credential type in under a minute
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Review full credential cards before confirming any nurse
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            See pending agency claims in real time — no email chains
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Set DNR flags for nurses not eligible to return
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Track agency costs and manage bill rates per partnership
+          </li>
+        </ul>
+      </div>
+
+      <!-- Nurses -->
+      <div class="r-card fade-up d3">
+        <div class="r-icon">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div class="r-eyebrow">For Nurses</div>
+        <h3 class="r-headline">Find shifts. Work<br>on your terms.</h3>
+        <div class="r-rule"></div>
+        <ul class="r-list">
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            See only shifts that match your credential — zero noise
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Drive time estimates from home before you commit
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Built-in double-booking detection on every claim
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            SMS confirmation the moment your shift is approved
+          </li>
+          <li>
+            <div class="r-check"><svg viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1"/></svg></div>
+            Full schedule view — upcoming, confirmed, and history
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     SCREENSHOT: NURSE VIEW
+================================================ -->
+<section class="ph-section alt">
+  <div class="container">
+    <div class="section-header fade-up" style="margin-bottom: 40px;">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>Nurse Experience</div>
+      <h2 class="section-title">The right shifts, at a glance.</h2>
+      <p class="section-sub">Nurses see a clean shift calendar, drive times on every card, and claim with full awareness of conflicts — no app download needed.</p>
+    </div>
+    <div class="ph-full fade-up d1">
+      <span class="ph-badge">[ Screenshot: Nurse Available Shifts — Calendar View ]</span>
+      <span class="ph-note">Replace this area with your actual screenshot</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     CTA
+================================================ -->
+<section class="cta-sec">
+  <div class="container">
+    <div class="cta-inner">
+      <div class="eyebrow"><span class="eyebrow-dot"></span>Get Started Today</div>
+      <h2 class="cta-title fade-up">Ready to stop chasing shifts?</h2>
+      <p class="cta-sub fade-up d1">
+        Join the agencies and facilities already using ShiftBridge to fill per diem nursing shifts faster — with verified credentials and zero phone tag.
+      </p>
+      <div class="cta-btns fade-up d2">
+        <a href="/signup" class="btn btn-teal btn-lg">Get Started as an Agency →</a>
+        <a href="/signup" class="btn btn-navy btn-lg">Get Started as a Facility</a>
+      </div>
+      <p class="cta-note fade-up d3">Free to get started &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; Setup in under 5 minutes</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================
+     FOOTER
+================================================ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-logo">
+        <img
+          src="/screenshots/logo (2).png"
+          alt="ShiftBridge"
+          style="height: 34px; width: auto;"
+          onerror="this.outerHTML='<span style=\'font-family:DM Serif Display,serif;font-size:20px;color:#fff;letter-spacing:-0.02em\'>Shift<span style=\'color:#14B8A6\'>Bridge</span></span>'">
+        <p class="footer-tagline">Connecting Healthcare Shifts</p>
+      </div>
+      <div class="footer-links">
+        <a href="/login">Sign In</a>
+        <a href="/signup">Sign Up</a>
+        <a href="mailto:hello@shiftbridge.io">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 ShiftBridge. All rights reserved.</span>
+      <span class="footer-copy">Built for per diem nursing staffing.</span>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ================================================
+     SCRIPTS
+================================================ -->
+<script>
+  // Nav: transparent → white on scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 44);
+  }, { passive: true });
+
+  // Scroll-triggered fade-up animations
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

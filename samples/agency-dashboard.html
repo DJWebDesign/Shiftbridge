@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShiftBridge — Agency Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<style>
+  *, body { font-family: 'DM Sans', sans-serif; box-sizing: border-box; margin:0; padding:0; }
+  .serif { font-family: 'DM Serif Display', serif; }
+
+  /* ── Color tokens ── */
+  :root {
+    --navy:       #0D1B2A;
+    --navy-hover: #19293C;
+    --teal:       #0D9488;
+    --teal-dim:   rgba(13,148,136,0.14);
+    --page:       #F4F7FA;
+    --card:       #FFFFFF;
+    --border:     #E4EAF0;
+    --text-1:     #0D1B2A;
+    --text-2:     #5B6B80;
+    --text-3:     #94A3B8;
+  }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; background: var(--page); }
+  .sidebar { width: 252px; background: var(--navy); display: flex; flex-direction: column; flex-shrink: 0; }
+  .main { flex: 1; padding: 32px 36px; overflow-y: auto; }
+
+  /* ── Logo ── */
+  .logo-wrap { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg,#0D9488,#0891B2); border-radius: 9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .logo-name { font-family: 'DM Serif Display',serif; color:#F1F5F9; font-size:17px; line-height:1.1; }
+  .logo-sub  { color: #4A6080; font-size: 10.5px; font-weight: 500; letter-spacing:.04em; margin-top:1px; }
+
+  /* ── Nav ── */
+  .nav-section { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #3D5166; padding: 18px 20px 6px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; margin:1px 8px; border-radius:8px; color:#7B93AB; font-size:13.5px; font-weight:500; text-decoration:none; transition:all .15s; border-left: 2px solid transparent; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color:#B8CEDD; }
+  .nav-item.active { background: var(--teal-dim); color:#2DD4BF; border-left-color: var(--teal); }
+  .nav-pill { margin-left:auto; background:rgba(45,212,191,.18); color:#2DD4BF; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
+  .nav-pill-warn { background:rgba(245,158,11,.18); color:#FBBF24; }
+
+  /* ── User footer ── */
+  .user-foot { padding:16px; border-top:1px solid rgba(255,255,255,0.06); margin-top:auto; }
+  .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+
+  /* ── Page header ── */
+  .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; }
+  .page-title { font-family:'DM Serif Display',serif; font-size:26px; color:var(--text-1); }
+  .page-sub { color:var(--text-2); font-size:13.5px; margin-top:3px; }
+
+  /* ── Buttons ── */
+  .btn { display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .15s; border:none; }
+  .btn-primary { background:var(--teal); color:white; }
+  .btn-primary:hover { background:#0F766E; }
+  .btn-ghost { background:white; color:var(--text-1); border:1px solid var(--border); }
+  .btn-ghost:hover { background:#F8FAFC; border-color:#CBD5E1; }
+
+  /* ── Stat cards ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .stat-card { background:white; border-radius:12px; border:1px solid var(--border); padding:20px; }
+  .stat-bar { height:3px; border-radius:2px; width:36px; margin-bottom:14px; }
+  .stat-label { font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--text-3); margin-bottom:6px; }
+  .stat-val { font-family:'DM Serif Display',serif; font-size:38px; color:var(--text-1); line-height:1; }
+  .stat-note { font-size:12px; font-weight:500; margin-top:5px; }
+
+  /* ── Content grid ── */
+  .content-grid { display:grid; grid-template-columns:1fr 332px; gap:20px; align-items:start; }
+
+  /* ── Panel ── */
+  .panel { background:white; border-radius:12px; border:1px solid var(--border); overflow:hidden; }
+  .panel-head { padding:14px 20px; border-bottom:1px solid #F1F5F9; display:flex; align-items:center; justify-content:space-between; }
+  .panel-title { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); }
+  .panel-link { font-size:12px; color:var(--teal); font-weight:500; text-decoration:none; }
+  .panel-link:hover { text-decoration:underline; }
+
+  /* ── Tabs ── */
+  .tab-bar { display:flex; gap:3px; background:#F4F7FA; border-radius:8px; padding:3px; }
+  .tab { padding:7px 14px; font-size:13px; font-weight:500; border-radius:6px; cursor:pointer; border:none; background:transparent; font-family:'DM Sans',sans-serif; color:var(--text-2); transition:all .15s; display:flex; align-items:center; gap:7px; }
+  .tab.active { background:white; color:var(--text-1); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+  /* ── Shift rows ── */
+  .shift-list { padding:0 20px; }
+  .shift-row { display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid #F8FAFC; }
+  .shift-row:last-child { border-bottom:none; }
+  .shift-date-col { width:48px; text-align:center; flex-shrink:0; }
+  .shift-date { font-size:12px; font-weight:700; color:var(--text-1); }
+  .shift-dow  { font-size:10px; color:var(--text-3); margin-top:1px; }
+  .shift-name { font-size:13.5px; font-weight:600; color:var(--text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .shift-meta { font-size:12px; color:var(--text-2); margin-top:2px; }
+
+  /* ── Credential & tier badges ── */
+  .cred { font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .cred-CNA   { background:#CCFBF1; color:#0F766E; }
+  .cred-CMA   { background:#F3E8FF; color:#7C3AED; }
+  .cred-LPN   { background:#DBEAFE; color:#1D4ED8; }
+  .cred-LPNIV { background:#E0E7FF; color:#4338CA; }
+  .cred-RN    { background:#DCFCE7; color:#15803D; }
+  .tier { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .tier-1 { background:#F1F5F9; color:#475569; }
+  .tier-2 { background:#FEF3C7; color:#B45309; }
+  .tier-3 { background:#FEE2E2; color:#B91C1C; }
+  .cnt-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
+
+  /* ── Alert items ── */
+  .alert-list { padding:0 20px; }
+  .alert-row { padding:12px 0; border-bottom:1px solid #F8FAFC; }
+  .alert-row:last-child { border-bottom:none; }
+
+  /* ── Scrollable ── */
+  .scroll-panel { max-height:290px; overflow-y:auto; }
+  .scroll-panel::-webkit-scrollbar { width:3px; }
+  .scroll-panel::-webkit-scrollbar-thumb { background:#E2E8F0; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ═══ Sidebar ═══ -->
+  <aside class="sidebar">
+    <div class="logo-wrap">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div class="logo-icon">
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <path d="M8.5 1.5L11 7H16L11.5 10.5L13 16L8.5 13L4 16L5.5 10.5L1 7H6L8.5 1.5Z" fill="white" opacity=".95"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-name">ShiftBridge</div>
+          <div class="logo-sub">Agency Portal</div>
+        </div>
+      </div>
+    </div>
+
+    <nav style="flex:1;padding:10px 0;">
+      <div class="nav-section">Main</div>
+      <a class="nav-item active" href="#">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Staff
+        <span class="nav-pill">12</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Shifts
+        <span class="nav-pill nav-pill-warn">5</span>
+      </a>
+      <a class="nav-item" href="#">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        Facilities
+      </a>
+      <div class="nav-section">Account</div>
+      <a class="nav-item" href="#">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Settings
+      </a>
+    </nav>
+
+    <div class="user-foot">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="background:linear-gradient(135deg,#1E3A5F,#2563EB);color:white;">SR</div>
+        <div style="overflow:hidden;">
+          <div style="color:#CBD5E1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Sunrise Staffing</div>
+          <div style="color:#4A6080;font-size:11px;">Agency Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ Main ═══ -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Good morning, Sunrise</h1>
+        <p class="page-sub">April 2026 &nbsp;·&nbsp; Here's where things stand today</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-primary">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.67 3.47 2 2 0 0 1 3.64 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
+          Mass Text
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-bar" style="background:linear-gradient(90deg,#0D9488,#0891B2);"></div>
+        <div class="stat-label">Confirmed Shifts</div>
+        <div class="stat-val">23</div>
+        <div class="stat-note" style="color:#0D9488;">this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-bar" style="background:linear-gradient(90deg,#8B5CF6,#6366F1);"></div>
+        <div class="stat-label">Hours Confirmed</div>
+        <div class="stat-val">184.5</div>
+        <div class="stat-note" style="color:#8B5CF6;">this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-bar" style="background:linear-gradient(90deg,#059669,#10B981);"></div>
+        <div class="stat-label">Est. Pay Out</div>
+        <div class="stat-val">$6,847</div>
+        <div class="stat-note" style="color:#059669;">hours × base rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-bar" style="background:linear-gradient(90deg,#F59E0B,#EF4444);"></div>
+        <div class="stat-label">Pending Claims</div>
+        <div class="stat-val" style="color:#B45309;">3</div>
+        <div class="stat-note" style="color:#B45309;">awaiting confirmation</div>
+      </div>
+    </div>
+
+    <!-- Content grid -->
+    <div class="content-grid">
+
+      <!-- Shifts panel -->
+      <div class="panel">
+        <div class="panel-head" style="flex-direction:column;align-items:stretch;gap:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="panel-title">Shift Activity</span>
+            <span style="font-size:12px;color:var(--text-3);">April 2026</span>
+          </div>
+          <div class="tab-bar">
+            <button class="tab active">
+              Confirmed
+              <span class="cnt-badge" style="background:#DCFCE7;color:#15803D;">23</span>
+            </button>
+            <button class="tab">
+              Pending
+              <span class="cnt-badge" style="background:#FEF3C7;color:#B45309;">3</span>
+            </button>
+            <button class="tab">
+              Canceled
+              <span class="cnt-badge" style="background:#FEE2E2;color:#B91C1C;">2</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="shift-list scroll-panel">
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 3</div>
+              <div class="shift-dow">Thu</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">Oakwood Care Center</div>
+              <div class="shift-meta">Maria Fontenot &nbsp;·&nbsp; 7:00 AM – 3:00 PM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-RN">RN</span>
+              <span class="tier tier-2">Priority</span>
+            </div>
+          </div>
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 4</div>
+              <div class="shift-dow">Fri</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">Bayou Pines SNF</div>
+              <div class="shift-meta">James Thibodaux &nbsp;·&nbsp; 3:00 PM – 11:00 PM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-LPN">LPN</span>
+              <span class="tier tier-1">Standard</span>
+            </div>
+          </div>
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 5</div>
+              <div class="shift-dow">Sat</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">Oakwood Care Center</div>
+              <div class="shift-meta">Denise Broussard &nbsp;·&nbsp; 11:00 PM – 7:00 AM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-CNA">CNA</span>
+              <span class="tier tier-3">Urgent</span>
+            </div>
+          </div>
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 6</div>
+              <div class="shift-dow">Sun</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">St. Martins Village</div>
+              <div class="shift-meta">Marcus Arceneaux &nbsp;·&nbsp; 7:00 AM – 3:00 PM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-LPNIV">LPN IV</span>
+              <span class="tier tier-2">Priority</span>
+            </div>
+          </div>
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 7</div>
+              <div class="shift-dow">Mon</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">Bayou Pines SNF</div>
+              <div class="shift-meta">Maria Fontenot &nbsp;·&nbsp; 3:00 PM – 11:00 PM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-RN">RN</span>
+              <span class="tier tier-1">Standard</span>
+            </div>
+          </div>
+          <div class="shift-row">
+            <div class="shift-date-col">
+              <div class="shift-date">Apr 9</div>
+              <div class="shift-dow">Wed</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="shift-name">Oakwood Care Center</div>
+              <div class="shift-meta">Renee Trosclair &nbsp;·&nbsp; 7:00 AM – 3:00 PM</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cred cred-CNA">CNA</span>
+              <span class="tier tier-1">Standard</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Credential Alerts -->
+        <div class="panel">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="panel-title">Credential Alerts</span>
+              <span class="cnt-badge" style="background:#FEF3C7;color:#B45309;">4</span>
+            </div>
+            <a class="panel-link" href="#">View all →</a>
+          </div>
+          <div class="alert-list">
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">Maria Fontenot</span>
+                <span class="cred cred-RN">RN</span>
+              </div>
+              <span style="font-size:12px;color:#B45309;">⚠ License expires in 8 days</span>
+            </div>
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">Denise Broussard</span>
+                <span class="cred cred-CNA">CNA</span>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <span style="font-size:12px;color:#B45309;">⚠ CPR: 14d</span>
+                <span style="font-size:12px;color:#B45309;">⚠ TB: 22d</span>
+              </div>
+            </div>
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">James Thibodaux</span>
+                <span class="cred cred-LPN">LPN</span>
+              </div>
+              <span style="font-size:12px;color:#B91C1C;font-weight:600;">⚠ License expired today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Needs -->
+        <div class="panel">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="panel-title">Open Needs</span>
+              <span class="cnt-badge" style="background:#FEE2E2;color:#B91C1C;">5</span>
+            </div>
+            <a class="panel-link" href="#">Calendar →</a>
+          </div>
+          <div class="alert-list">
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">Oakwood Care Center</span>
+                <span class="tier tier-3">Urgent</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text-2);">Apr 10 &nbsp;·&nbsp; 7:00 AM</span>
+                <span class="cred cred-RN">RN</span>
+                <span style="font-size:11px;color:var(--text-3);margin-left:auto;">3d open</span>
+              </div>
+            </div>
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">Bayou Pines SNF</span>
+                <span class="tier tier-2">Priority</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text-2);">Apr 11 &nbsp;·&nbsp; 3:00 PM</span>
+                <span class="cred cred-LPNIV">LPN IV</span>
+                <span style="font-size:11px;color:var(--text-3);margin-left:auto;">1d open</span>
+              </div>
+            </div>
+            <div class="alert-row">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text-1);">St. Martins Village</span>
+                <span class="tier tier-2">Priority</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text-2);">Apr 12 &nbsp;·&nbsp; 11:00 PM</span>
+                <span class="cred cred-CNA">CNA</span>
+                <span style="font-size:11px;color:var(--text-3);margin-left:auto;">today</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right col -->
+    </div><!-- /content grid -->
+  </main>
+</div>
+</body>
+</html>

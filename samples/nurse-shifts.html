@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShiftBridge — Available Shifts</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<style>
+  *, body { font-family:'DM Sans',sans-serif; box-sizing:border-box; margin:0; padding:0; }
+  .serif { font-family:'DM Serif Display',serif; }
+  :root {
+    --navy:#0D1B2A; --teal:#0D9488; --teal-dim:rgba(13,148,136,0.13);
+    --page:#F4F7FA; --border:#E4EAF0; --text-1:#0D1B2A; --text-2:#5B6B80; --text-3:#94A3B8;
+  }
+  .layout { display:flex; min-height:100vh; background:var(--page); }
+  .sidebar { width:252px; background:var(--navy); display:flex; flex-direction:column; flex-shrink:0; }
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .logo-icon { width:34px; height:34px; background:linear-gradient(135deg,#0D9488,#0891B2); border-radius:9px; display:flex; align-items:center; justify-content:center; }
+  .nav-section { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#3D5166; padding:18px 20px 6px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; margin:1px 8px; border-radius:8px; color:#7B93AB; font-size:13.5px; font-weight:500; text-decoration:none; transition:all .15s; border-left:2px solid transparent; cursor:pointer; }
+  .nav-item:hover { background:rgba(255,255,255,0.05); color:#B8CEDD; }
+  .nav-item.active { background:var(--teal-dim); color:#2DD4BF; border-left-color:var(--teal); }
+  .user-foot { padding:16px; border-top:1px solid rgba(255,255,255,0.06); margin-top:auto; }
+
+  /* Cred badges */
+  .cred { font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .cred-CNA   { background:#CCFBF1; color:#0F766E; }
+  .cred-LPN   { background:#DBEAFE; color:#1D4ED8; }
+  .cred-LPNIV { background:#E0E7FF; color:#4338CA; }
+  .cred-RN    { background:#DCFCE7; color:#15803D; }
+
+  /* Tier badges */
+  .tier { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; display:inline-flex; align-items:center; gap:4px; }
+  .tier-1 { background:#F1F5F9; color:#475569; }
+  .tier-2 { background:#FEF3C7; color:#B45309; }
+  .tier-3 { background:#FEE2E2; color:#B91C1C; }
+
+  /* Agency pills */
+  .agency-pill { padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:500; cursor:pointer; border:1.5px solid var(--border); background:white; color:var(--text-2); transition:all .15s; }
+  .agency-pill.active { background:var(--navy); color:white; border-color:var(--navy); }
+
+  /* Facility filter pills */
+  .fac-pill { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:1.5px solid var(--border); background:white; color:var(--text-2); transition:all .15s; white-space:nowrap; }
+  .fac-pill.active { background:var(--teal); color:white; border-color:var(--teal); }
+  .fac-pill:hover:not(.active) { border-color:#94A3B8; }
+
+  /* ── Calendar ── */
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--border); border-radius:10px; overflow:hidden; }
+  .cal-header { background:#F8FAFC; text-align:center; padding:8px 4px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-3); }
+  .cal-day {
+    background:white; min-height:72px; padding:6px 8px; cursor:pointer;
+    transition:background .1s;
+    position:relative;
+  }
+  .cal-day:hover { background:#F0FDF9; }
+  .cal-day.empty { background:#FAFBFC; cursor:default; }
+  .cal-day.selected { background:#F0FDF9; outline:2px solid var(--teal); outline-offset:-2px; z-index:1; }
+  .cal-day.today { background:#FFFBEB; }
+  .cal-day-num { font-size:12.5px; font-weight:600; color:var(--text-1); margin-bottom:4px; }
+  .cal-day.empty .cal-day-num { color:var(--text-3); }
+  .cal-day.today .cal-day-num { color:var(--teal); }
+
+  /* Shift dots on calendar */
+  .dot-row { display:flex; flex-wrap:wrap; gap:2px; }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot-std { background:#CBD5E1; }
+  .dot-pri { background:#F59E0B; }
+  .dot-urg { background:#EF4444; }
+  .dot-more { font-size:9px; color:var(--text-3); font-weight:600; line-height:8px; }
+
+  /* Shift cards */
+  .shift-card {
+    background:white; border-radius:12px; border:1px solid var(--border);
+    overflow:hidden; transition:box-shadow .15s, transform .15s;
+  }
+  .shift-card:hover { box-shadow:0 4px 16px rgba(13,27,42,0.08); transform:translateY(-1px); }
+  .shift-card.tier-std { border-left:3px solid #CBD5E1; }
+  .shift-card.tier-pri { border-left:3px solid #F59E0B; }
+  .shift-card.tier-urg { border-left:3px solid #EF4444; }
+
+  .card-body { padding:16px 18px; }
+  .card-facility { font-size:14.5px; font-weight:700; color:var(--text-1); margin-bottom:2px; }
+  .card-location { font-size:12px; color:var(--text-3); margin-bottom:10px; display:flex; align-items:center; gap:5px; }
+  .card-time { font-size:13px; font-weight:600; color:var(--text-1); margin-bottom:3px; }
+  .card-date { font-size:12px; color:var(--text-2); }
+  .card-meta { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid #F1F5F9; }
+  .drive-chip { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text-2); background:#F4F7FA; border-radius:20px; padding:3px 9px; }
+  .pay-disp { margin-left:auto; text-align:right; }
+  .pay-amount { font-family:'DM Serif Display',serif; font-size:17px; color:var(--text-1); line-height:1; }
+  .pay-note { font-size:10px; color:var(--text-3); margin-top:1px; }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .15s; border:none; width:100%; justify-content:center; }
+  .btn-claim { background:var(--teal); color:white; }
+  .btn-claim:hover { background:#0F766E; }
+  .btn-warn { background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; }
+  .btn-confirm { background:#B45309; color:white; }
+  .btn-claimed { background:#F1F5F9; color:#94A3B8; cursor:default; }
+  .card-footer { padding:0 18px 16px; }
+  .warn-box { background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:9px 12px; margin-bottom:8px; font-size:12px; color:#92400E; line-height:1.5; }
+
+  /* Content area */
+  .content-area { flex:1; padding:28px 32px; overflow-y:auto; }
+
+  /* Day panel slide-in */
+  .day-panel {
+    width:340px; flex-shrink:0; border-left:1px solid var(--border);
+    background:white; display:flex; flex-direction:column;
+    transition:all .2s; overflow-y:auto;
+  }
+  .day-panel.hidden { width:0; border:none; overflow:hidden; }
+  .day-panel-head { padding:18px 20px 14px; border-bottom:1px solid #F1F5F9; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+
+  /* Scrollable shift list in panel */
+  .panel-shift-list { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div style="padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div class="logo-icon">
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M8.5 1.5L11 7H16L11.5 10.5L13 16L8.5 13L4 16L5.5 10.5L1 7H6L8.5 1.5Z" fill="white" opacity=".95"/></svg>
+        </div>
+        <div>
+          <div class="serif" style="color:#F1F5F9;font-size:17px;line-height:1.1;">ShiftBridge</div>
+          <div style="color:#4A6080;font-size:10.5px;font-weight:500;letter-spacing:.04em;margin-top:1px;">Nurse Portal</div>
+        </div>
+      </div>
+    </div>
+    <nav style="flex:1;padding:10px 0;">
+      <div class="nav-section">Shifts</div>
+      <div class="nav-item active" onclick="setView('calendar')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Available Shifts
+      </div>
+      <div class="nav-item" onclick="setView('list')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        My Schedule
+      </div>
+    </nav>
+    <div class="user-foot">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#DCFCE7,#10B981);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#065F46;flex-shrink:0;">MF</div>
+        <div>
+          <div style="color:#CBD5E1;font-size:13px;font-weight:600;">Maria Fontenot</div>
+          <div style="color:#4A6080;font-size:11px;display:flex;align-items:center;gap:5px;">
+            <span class="cred cred-RN" style="font-size:10px;padding:1px 7px;">RN</span>
+            Sunrise Staffing
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main (calendar + optional day panel) -->
+  <div class="main">
+    <div class="content-area" id="mainContent">
+
+      <!-- Page header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <h1 class="serif" style="font-size:24px;color:var(--text-1);">Available Shifts</h1>
+          <p style="color:var(--text-2);font-size:13px;margin-top:3px;">RN shifts near Lafayette, LA — April 2026</p>
+        </div>
+        <!-- View toggle -->
+        <div style="display:flex;background:#F1F5F9;border-radius:8px;padding:3px;gap:2px;">
+          <button onclick="setView('calendar')" id="btn-cal" style="padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;background:white;color:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.08);">Calendar</button>
+          <button onclick="setView('list')" id="btn-list" style="padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-2);">List</button>
+        </div>
+      </div>
+
+      <!-- Agency selector -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;">Agency</span>
+        <button class="agency-pill active">Sunrise Staffing</button>
+        <button class="agency-pill">Premier Nursing</button>
+      </div>
+
+      <!-- Facility filter -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;" id="facFilter">
+        <span style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;">Facility</span>
+        <button class="fac-pill active" onclick="filterFac(this,'all')">All Facilities</button>
+        <button class="fac-pill" onclick="filterFac(this,'oakwood')">Oakwood Care Center</button>
+        <button class="fac-pill" onclick="filterFac(this,'bayou')">Bayou Pines SNF</button>
+        <button class="fac-pill" onclick="filterFac(this,'stmartins')">St. Martins Village</button>
+        <button class="fac-pill" onclick="filterFac(this,'magnolia')">Magnolia Gardens</button>
+      </div>
+
+      <!-- ── CALENDAR VIEW ── -->
+      <div id="calView">
+        <!-- Month nav -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <button onclick="prevMonth()" style="border:1px solid var(--border);background:white;border-radius:7px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="serif" id="monthLabel" style="font-size:18px;color:var(--text-1);min-width:160px;text-align:center;"></span>
+          <button onclick="nextMonth()" style="border:1px solid var(--border);background:white;border-radius:7px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <!-- Legend -->
+          <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);"><span class="dot dot-std"></span>Standard</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);"><span class="dot dot-pri"></span>Priority</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);"><span class="dot dot-urg"></span>Urgent</span>
+          </div>
+        </div>
+
+        <!-- Calendar grid -->
+        <div class="cal-grid" id="calGrid">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <!-- ── LIST VIEW ── -->
+      <div id="listView" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;" id="shiftCards">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+
+    <!-- Day panel (slides in on day click) -->
+    <div class="day-panel hidden" id="dayPanel">
+      <div class="day-panel-head">
+        <div>
+          <div class="serif" style="font-size:16px;color:var(--text-1);" id="panelDate">—</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:2px;" id="panelCount">— shifts available</div>
+        </div>
+        <button onclick="closePanel()" style="border:none;background:none;cursor:pointer;color:var(--text-3);font-size:20px;line-height:1;">×</button>
+      </div>
+      <div class="panel-shift-list" id="panelShifts"></div>
+    </div>
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ── Data ───────────────────────────────────────────────────────────────────
+const SHIFTS = [
+  { id:1, date:'2026-04-06', fac:'Oakwood Care Center', facKey:'oakwood', city:'Lafayette, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~12 min', pay:28 },
+  { id:2, date:'2026-04-07', fac:'Bayou Pines SNF', facKey:'bayou', city:'Breaux Bridge, LA', start:'3:00 PM', end:'11:00 PM', hrs:8, cred:'RN', tier:2, drive:'~28 min', pay:33 },
+  { id:3, date:'2026-04-08', fac:'St. Martins Village', facKey:'stmartins', city:'St. Martinville, LA', start:'11:00 PM', end:'7:00 AM', hrs:8, cred:'RN', tier:3, drive:'~41 min', pay:38 },
+  { id:4, date:'2026-04-10', fac:'Oakwood Care Center', facKey:'oakwood', city:'Lafayette, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~12 min', pay:28, claimed:true },
+  { id:5, date:'2026-04-11', fac:'Bayou Pines SNF', facKey:'bayou', city:'Breaux Bridge, LA', start:'3:00 PM', end:'11:00 PM', hrs:8, cred:'RN', tier:2, drive:'~28 min', pay:33, warn:true },
+  { id:6, date:'2026-04-12', fac:'Magnolia Gardens', facKey:'magnolia', city:'New Iberia, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:2, drive:'~22 min', pay:33 },
+  { id:7, date:'2026-04-14', fac:'Oakwood Care Center', facKey:'oakwood', city:'Lafayette, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~12 min', pay:28 },
+  { id:8, date:'2026-04-14', fac:'Bayou Pines SNF', facKey:'bayou', city:'Breaux Bridge, LA', start:'3:00 PM', end:'11:00 PM', hrs:8, cred:'RN', tier:3, drive:'~28 min', pay:38 },
+  { id:9, date:'2026-04-16', fac:'St. Martins Village', facKey:'stmartins', city:'St. Martinville, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~41 min', pay:28 },
+  { id:10, date:'2026-04-18', fac:'Magnolia Gardens', facKey:'magnolia', city:'New Iberia, LA', start:'11:00 PM', end:'7:00 AM', hrs:8, cred:'RN', tier:3, drive:'~22 min', pay:38 },
+  { id:11, date:'2026-04-21', fac:'Oakwood Care Center', facKey:'oakwood', city:'Lafayette, LA', start:'3:00 PM', end:'11:00 PM', hrs:8, cred:'RN', tier:2, drive:'~12 min', pay:33 },
+  { id:12, date:'2026-04-23', fac:'Bayou Pines SNF', facKey:'bayou', city:'Breaux Bridge, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~28 min', pay:28 },
+  { id:13, date:'2026-04-25', fac:'Magnolia Gardens', facKey:'magnolia', city:'New Iberia, LA', start:'3:00 PM', end:'11:00 PM', hrs:8, cred:'RN', tier:2, drive:'~22 min', pay:33 },
+  { id:14, date:'2026-04-28', fac:'Oakwood Care Center', facKey:'oakwood', city:'Lafayette, LA', start:'7:00 AM', end:'3:00 PM', hrs:8, cred:'RN', tier:1, drive:'~12 min', pay:28 },
+  { id:15, date:'2026-04-30', fac:'St. Martins Village', facKey:'stmartins', city:'St. Martinville, LA', start:'11:00 PM', end:'7:00 AM', hrs:8, cred:'RN', tier:2, drive:'~41 min', pay:33 },
+]
+
+let currentYear = 2026, currentMonth = 3 // 0-indexed April
+let selectedDate = null
+let activeFac = 'all'
+
+function getShifts() {
+  return SHIFTS.filter(s => activeFac === 'all' || s.facKey === activeFac)
+}
+
+// ── Calendar ───────────────────────────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+function renderCalendar() {
+  const label = document.getElementById('monthLabel')
+  label.textContent = MONTHS[currentMonth] + ' ' + currentYear
+
+  const grid = document.getElementById('calGrid')
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay()
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+
+  const shifts = getShifts()
+
+  let html = DAYS.map(d => `<div class="cal-header">${d}</div>`).join('')
+
+  // Blank leading cells
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"><div class="cal-day-num">${new Date(currentYear, currentMonth, 1-firstDay+i).getDate()}</div></div>`
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    const dayShifts = shifts.filter(s => s.date === dateStr)
+    const isToday = dateStr === todayStr
+    const isSel = dateStr === selectedDate
+
+    let dots = ''
+    if (dayShifts.length > 0) {
+      const visible = dayShifts.slice(0, 5)
+      dots = `<div class="dot-row">`
+      visible.forEach(s => {
+        const cls = s.tier === 3 ? 'dot-urg' : s.tier === 2 ? 'dot-pri' : 'dot-std'
+        dots += `<span class="dot ${cls}"></span>`
+      })
+      if (dayShifts.length > 5) dots += `<span class="dot-more">+${dayShifts.length-5}</span>`
+      dots += `</div>`
+    }
+
+    const classes = ['cal-day', isToday?'today':'', isSel?'selected':''].filter(Boolean).join(' ')
+    html += `<div class="${classes}" onclick="selectDay('${dateStr}',${d})">`
+    html += `<div class="cal-day-num">${d}</div>`
+    html += dots
+    html += `</div>`
+  }
+
+  // Trailing blanks to fill last row
+  const total = firstDay + daysInMonth
+  const trailing = total % 7 === 0 ? 0 : 7 - (total % 7)
+  for (let i = 1; i <= trailing; i++) html += `<div class="cal-day empty"><div class="cal-day-num">${i}</div></div>`
+
+  grid.innerHTML = html
+}
+
+function prevMonth() {
+  currentMonth--
+  if (currentMonth < 0) { currentMonth = 11; currentYear-- }
+  selectedDate = null
+  closePanel()
+  renderCalendar()
+}
+function nextMonth() {
+  currentMonth++
+  if (currentMonth > 11) { currentMonth = 0; currentYear++ }
+  selectedDate = null
+  closePanel()
+  renderCalendar()
+}
+
+// ── Day panel ──────────────────────────────────────────────────────────────
+function selectDay(dateStr, dayNum) {
+  const shifts = getShifts().filter(s => s.date === dateStr)
+  selectedDate = dateStr
+
+  const panel = document.getElementById('dayPanel')
+  const panelDate = document.getElementById('panelDate')
+  const panelCount = document.getElementById('panelCount')
+  const panelShifts = document.getElementById('panelShifts')
+
+  // Format date
+  const [y,m,d] = dateStr.split('-').map(Number)
+  const dt = new Date(y, m-1, d)
+  panelDate.textContent = dt.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
+  panelCount.textContent = shifts.length === 0 ? 'No shifts available' : `${shifts.length} shift${shifts.length !== 1 ? 's' : ''} available`
+
+  if (shifts.length === 0) {
+    panelShifts.innerHTML = `<div style="text-align:center;padding:32px 0;color:var(--text-3);font-size:13px;">No shifts on this day.</div>`
+  } else {
+    panelShifts.innerHTML = shifts.map(s => renderPanelCard(s)).join('')
+  }
+
+  panel.classList.remove('hidden')
+  renderCalendar() // re-render to show selection
+}
+
+function renderPanelCard(s) {
+  const tierClass = s.tier === 3 ? 'tier-urg' : s.tier === 2 ? 'tier-pri' : 'tier-std'
+  const tierLabel = s.tier === 3 ? 'Urgent' : s.tier === 2 ? 'Priority' : 'Standard'
+  const total = s.pay * s.hrs
+
+  let btn = ''
+  if (s.claimed) {
+    btn = `<button class="btn btn-claimed" style="margin-top:10px;" disabled>✓ Claim Pending</button>`
+  } else if (s.warn) {
+    btn = `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:11.5px;color:#92400E;">You have a pending claim nearby. Verify schedule before claiming.</div><button class="btn" style="margin-top:8px;background:#B45309;color:white;">Confirm & Claim</button>`
+  } else {
+    btn = `<button class="btn btn-claim" style="margin-top:10px;">Claim Shift</button>`
+  }
+
+  return `
+    <div class="shift-card ${tierClass}">
+      <div class="card-body" style="padding:14px 16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-1);">${s.fac}</div>
+        <div style="font-size:11.5px;color:var(--text-3);margin:2px 0 10px;display:flex;align-items:center;gap:4px;">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${s.city}
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);">${s.start} – ${s.end}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #F1F5F9;">
+          <span class="cred cred-${s.cred.replace(' ','')}">${s.cred}</span>
+          <span class="tier tier-${s.tier}">${tierLabel}</span>
+          <span class="drive-chip">
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            ${s.drive}
+          </span>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--text-1);">$${s.pay}/hr</div>
+            <div style="font-size:10px;color:var(--text-3);">$${total} total</div>
+          </div>
+        </div>
+        ${btn}
+      </div>
+    </div>
+  `
+}
+
+function closePanel() {
+  document.getElementById('dayPanel').classList.add('hidden')
+  selectedDate = null
+  renderCalendar()
+}
+
+// ── List view ──────────────────────────────────────────────────────────────
+function renderList() {
+  const shifts = getShifts()
+  if (shifts.length === 0) {
+    document.getElementById('shiftCards').innerHTML = `<div style="grid-column:span 2;text-align:center;padding:48px;background:white;border-radius:12px;border:1px solid var(--border);color:var(--text-3);">No shifts match your filter.</div>`
+    return
+  }
+
+  document.getElementById('shiftCards').innerHTML = shifts.map(s => {
+    const tierClass = s.tier === 3 ? 'tier-urg' : s.tier === 2 ? 'tier-pri' : 'tier-std'
+    const tierLabel = s.tier === 3 ? 'Urgent' : s.tier === 2 ? 'Priority' : 'Standard'
+    const total = s.pay * s.hrs
+    const [y,m,d] = s.date.split('-').map(Number)
+    const dateLabel = new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})
+
+    let footerBtn = ''
+    if (s.claimed) footerBtn = `<button class="btn btn-claimed" disabled>✓ Claim Pending</button>`
+    else if (s.warn) footerBtn = `<div class="warn-box">You have a nearby pending claim. Verify your schedule.</div><button class="btn" style="background:#B45309;color:white;">Confirm & Claim</button>`
+    else footerBtn = `<button class="btn btn-claim">Claim Shift</button>`
+
+    return `
+      <div class="shift-card ${tierClass}">
+        <div class="card-body">
+          <div class="card-facility">${s.fac}</div>
+          <div class="card-location"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.city}</div>
+          <div class="card-time">${s.start} – ${s.end} &nbsp;·&nbsp; ${s.hrs} hrs</div>
+          <div class="card-date">${dateLabel}</div>
+          <div class="card-meta">
+            <span class="cred cred-${s.cred.replace(' ','')}">${s.cred}</span>
+            <span class="tier tier-${s.tier}">${tierLabel}</span>
+            <span class="drive-chip"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>${s.drive}</span>
+            <div class="pay-disp"><div class="pay-amount">$${s.pay}/hr</div><div class="pay-note">$${total} total</div></div>
+          </div>
+        </div>
+        <div class="card-footer">${footerBtn}</div>
+      </div>
+    `
+  }).join('')
+}
+
+// ── View toggle ────────────────────────────────────────────────────────────
+function setView(v) {
+  const calView = document.getElementById('calView')
+  const listView = document.getElementById('listView')
+  const btnCal = document.getElementById('btn-cal')
+  const btnList = document.getElementById('btn-list')
+
+  if (v === 'calendar') {
+    calView.style.display = ''
+    listView.style.display = 'none'
+    btnCal.style.background = 'white'
+    btnCal.style.color = 'var(--text-1)'
+    btnCal.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)'
+    btnList.style.background = 'transparent'
+    btnList.style.color = 'var(--text-2)'
+    btnList.style.boxShadow = 'none'
+    closePanel()
+  } else {
+    calView.style.display = 'none'
+    listView.style.display = ''
+    btnList.style.background = 'white'
+    btnList.style.color = 'var(--text-1)'
+    btnList.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)'
+    btnCal.style.background = 'transparent'
+    btnCal.style.color = 'var(--text-2)'
+    btnCal.style.boxShadow = 'none'
+    closePanel()
+    renderList()
+  }
+}
+
+// ── Facility filter ────────────────────────────────────────────────────────
+function filterFac(btn, key) {
+  document.querySelectorAll('.fac-pill').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  activeFac = key
+  selectedDate = null
+  closePanel()
+  renderCalendar()
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+renderCalendar()
+</script>
+</body>
+</html>

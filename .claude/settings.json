@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "c:\\ShiftBridge\\src\\app\\(demo)\\demo\\agency",
+      "c:\\ShiftBridge\\src\\app\\(demo)\\demo\\agency\\[agencyId]\\facilities\\placeholder"
+    ]
+  }
+}

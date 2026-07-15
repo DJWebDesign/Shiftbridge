@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShiftBridge — Calendar Option D</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<style>
+*, body { font-family: 'DM Sans', sans-serif; box-sizing: border-box; margin:0; padding:0; }
+
+:root {
+  --navy:     #0D1B2A;
+  --teal:     #0D9488;
+  --teal-dim: rgba(13,148,136,0.12);
+  --page:     #F4F7FA;
+  --card:     #FFFFFF;
+  --border:   #E4EAF0;
+  --text-1:   #0D1B2A;
+  --text-2:   #5B6B80;
+  --text-3:   #94A3B8;
+}
+
+body { background: var(--page); display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; min-height: 100vh; }
+
+.cal-wrap {
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+  overflow: hidden;
+  width: 580px;
+}
+
+/* ── Header — navy like sidebar ── */
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  background: var(--navy);
+}
+.cal-month { font-size: 16px; font-weight: 600; color: #F1F5F9; }
+.cal-year  { font-size: 16px; font-weight: 400; color: #4A6080; margin-left: 7px; }
+.nav-btn {
+  width: 30px; height: 30px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #7B93AB; font-size: 17px; line-height: 1;
+  transition: all .15s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.11); color: #F1F5F9; }
+.nav-group { display: flex; gap: 6px; }
+
+/* ── Day-of-week labels — still in navy band ── */
+.day-labels {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  background: var(--navy);
+  padding: 2px 16px 14px;
+}
+.day-label {
+  text-align: center;
+  font-size: 10.5px; font-weight: 600;
+  color: #7B93AB;
+  letter-spacing: .07em; text-transform: uppercase;
+}
+
+/* ── Tile grid ── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  padding: 14px 14px 14px;
+  background: var(--page);  /* gap colour = page background */
+}
+
+/* ── Individual day tile ── */
+.day-tile {
+  border-radius: 10px;
+  padding: 8px 8px 7px;
+  min-height: 74px;
+  background: var(--card);
+  cursor: pointer;
+  transition: background .12s, box-shadow .12s, transform .12s;
+  position: relative;
+}
+.day-tile:hover {
+  background: #EBF5F4;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(13,148,136,.10);
+}
+.day-tile.empty {
+  background: transparent;
+  cursor: default;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.day-tile.past { opacity: 0.52; }
+
+/* ── TODAY — thicker teal outline, no fill ── */
+.day-tile.today {
+  box-shadow: inset 0 0 0 2.5px var(--teal);
+  background: var(--card);
+}
+.day-tile.today:hover {
+  background: #EBF5F4;
+  box-shadow: inset 0 0 0 2.5px var(--teal), 0 3px 8px rgba(13,148,136,.14);
+}
+/* The date number on today: teal text, no background fill */
+.day-tile.today .day-num {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+/* ── SELECTED — teal outline only, no fill ── */
+.day-tile.selected {
+  box-shadow: inset 0 0 0 2.5px var(--teal) !important;
+  transform: none !important;
+}
+.day-tile.today.selected {
+  box-shadow: inset 0 0 0 2.5px var(--teal) !important;
+}
+
+/* ── Date number ── */
+.day-num {
+  font-size: 13px; font-weight: 600; color: var(--text-1);
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 5px;
+  line-height: 1;
+}
+
+/* ── Shift pills ── */
+.pills { display: flex; flex-direction: column; gap: 3px; }
+.pill {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap; width: fit-content;
+  line-height: 1.5;
+}
+.pill-open      { background: #CCFBF1; color: #0F766E; }
+.pill-claimed   { background: #FEF3C7; color: #92400E; }
+.pill-confirmed { background: #DCFCE7; color: #166534; }
+
+/* Pills on selected tile (same as normal, teal outline doesn't need override) */
+
+/* ── Legend ── */
+.legend {
+  display: flex; gap: 20px; align-items: center;
+  padding: 11px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot  { width: 8px; height: 8px; border-radius: 50%; }
+.legend-label { font-size: 11px; color: var(--text-2); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div style="max-width:620px; width:100%;">
+
+  <div class="cal-wrap">
+
+    <!-- Navy header -->
+    <div class="cal-header">
+      <div>
+        <span class="cal-month">April</span><span class="cal-year">2026</span>
+      </div>
+      <div class="nav-group">
+        <button class="nav-btn">&#8249;</button>
+        <button class="nav-btn">&#8250;</button>
+      </div>
+    </div>
+
+    <!-- Day labels (in navy band) -->
+    <div class="day-labels">
+      <div class="day-label">Sun</div>
+      <div class="day-label">Mon</div>
+      <div class="day-label">Tue</div>
+      <div class="day-label">Wed</div>
+      <div class="day-label">Thu</div>
+      <div class="day-label">Fri</div>
+      <div class="day-label">Sat</div>
+    </div>
+
+    <!-- Tile grid -->
+    <div class="cal-grid">
+
+      <!-- Week 1 pads -->
+      <div class="day-tile empty"></div>
+      <div class="day-tile empty"></div>
+      <div class="day-tile past"><div class="day-num">1</div></div>
+      <div class="day-tile past"><div class="day-num">2</div></div>
+      <div class="day-tile past"><div class="day-num">3</div></div>
+      <div class="day-tile past">
+        <div class="day-num">4</div>
+        <div class="pills"><span class="pill pill-confirmed">2 confirmed</span></div>
+      </div>
+      <div class="day-tile past"><div class="day-num">5</div></div>
+
+      <!-- Week 2 -->
+      <div class="day-tile past">
+        <div class="day-num">6</div>
+        <div class="pills"><span class="pill pill-confirmed">1 confirmed</span></div>
+      </div>
+      <div class="day-tile past"><div class="day-num">7</div></div>
+      <div class="day-tile past">
+        <div class="day-num">8</div>
+        <div class="pills"><span class="pill pill-confirmed">3 confirmed</span></div>
+      </div>
+      <div class="day-tile past">
+        <div class="day-num">9</div>
+        <div class="pills"><span class="pill pill-claimed">1 pending</span></div>
+      </div>
+      <div class="day-tile past"><div class="day-num">10</div></div>
+      <div class="day-tile past">
+        <div class="day-num">11</div>
+        <div class="pills"><span class="pill pill-confirmed">2 confirmed</span></div>
+      </div>
+      <div class="day-tile past"><div class="day-num">12</div></div>
+
+      <!-- Week 3 -->
+      <div class="day-tile past">
+        <div class="day-num">13</div>
+        <div class="pills"><span class="pill pill-confirmed">1 confirmed</span></div>
+      </div>
+      <div class="day-tile past">
+        <div class="day-num">14</div>
+        <div class="pills"><span class="pill pill-claimed">2 pending</span></div>
+      </div>
+      <div class="day-tile past">
+        <div class="day-num">15</div>
+        <div class="pills"><span class="pill pill-confirmed">1 confirmed</span></div>
+      </div>
+      <div class="day-tile past"><div class="day-num">16</div></div>
+      <div class="day-tile past">
+        <div class="day-num">17</div>
+        <div class="pills"><span class="pill pill-confirmed">2 confirmed</span></div>
+      </div>
+      <!-- TODAY = April 18, also selected -->
+      <div class="day-tile today selected">
+        <div class="day-num">18</div>
+        <div class="pills">
+          <span class="pill pill-open">3 open</span>
+          <span class="pill pill-confirmed">1 confirmed</span>
+        </div>
+      </div>
+      <div class="day-tile">
+        <div class="day-num">19</div>
+        <div class="pills"><span class="pill pill-open">2 open</span></div>
+      </div>
+
+      <!-- Week 4 -->
+      <div class="day-tile"><div class="day-num">20</div></div>
+      <div class="day-tile">
+        <div class="day-num">21</div>
+        <div class="pills"><span class="pill pill-open">4 open</span></div>
+      </div>
+      <div class="day-tile">
+        <div class="day-num">22</div>
+        <div class="pills">
+          <span class="pill pill-open">2 open</span>
+          <span class="pill pill-claimed">1 pending</span>
+        </div>
+      </div>
+      <div class="day-tile"><div class="day-num">23</div></div>
+      <div class="day-tile">
+        <div class="day-num">24</div>
+        <div class="pills"><span class="pill pill-open">3 open</span></div>
+      </div>
+      <div class="day-tile">
+        <div class="day-num">25</div>
+        <div class="pills"><span class="pill pill-open">1 open</span></div>
+      </div>
+      <div class="day-tile"><div class="day-num">26</div></div>
+
+      <!-- Week 5 -->
+      <div class="day-tile">
+        <div class="day-num">27</div>
+        <div class="pills"><span class="pill pill-open">2 open</span></div>
+      </div>
+      <div class="day-tile"><div class="day-num">28</div></div>
+      <div class="day-tile">
+        <div class="day-num">29</div>
+        <div class="pills"><span class="pill pill-open">5 open</span></div>
+      </div>
+      <div class="day-tile">
+        <div class="day-num">30</div>
+        <div class="pills"><span class="pill pill-open">2 open</span></div>
+      </div>
+      <div class="day-tile empty"></div>
+      <div class="day-tile empty"></div>
+      <div class="day-tile empty"></div>
+
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#0D9488"></div>
+        <span class="legend-label">Open</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#F59E0B"></div>
+        <span class="legend-label">Pending</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#22C55E"></div>
+        <span class="legend-label">Confirmed</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#94A3B8"></div>
+        <span class="legend-label">Canceled</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
