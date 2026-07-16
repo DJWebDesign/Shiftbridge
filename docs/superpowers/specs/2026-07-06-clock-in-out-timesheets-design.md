@@ -1,7 +1,7 @@
 # Clock In/Out & Timesheets — Design Spec
 
-**Date:** 2026-07-06
-**Status:** Approved by Derrick (design review 2026-07-06). Implementation blocked until the repo is set up in GitHub and the current version is saved.
+**Date:** 2026-07-06 (printable timesheet requirement added 2026-07-15)
+**Status:** Approved by Derrick (design review 2026-07-06). Repo is now on GitHub with the current version committed — the implementation blocker is cleared. Ready to build in a new session.
 
 ---
 
@@ -27,12 +27,13 @@ This feature adds facility-verified time tracking:
 | Nurse hours view | **Dedicated page** at `/nurse/hours` with a new nav link. |
 | Agency admin view | **New Timesheets page** at `/agency/[agencyId]/timesheets` with a new nav link. |
 | Clock-in availability | Button appears **30 minutes before scheduled start** (revised down from 2 hours during review). |
+| Printable timesheet | **Browser print, not a PDF library.** A print-styled page (existing role layout, nav chrome hidden via print CSS) renders shift rows + signature images for a chosen date range; the user hits browser Print / Save-as-PDF. No PDF-generation dependency. |
 
 ---
 
 ## 1. Data model
 
-New table `shift_timesheets` in `supabase/migrations/005_timesheets.sql`. Migration is run manually by pasting into **Supabase Dashboard → SQL Editor** (no CLI on this machine).
+New table `shift_timesheets` in `supabase/migrations/008_timesheets.sql`. Migration is run manually by pasting into **Supabase Dashboard → SQL Editor** (no CLI on this machine).
 
 **One row per confirmed claim.** Timesheet state is derivable from which fields are filled: no row / empty → not started; `clock_in_time` set → clocked in; both set → complete.
 
@@ -136,6 +137,7 @@ Confirmation state; card now shows **"Clocked in at 6:58 AM ✓"** plus a **"Clo
 - Server page fetches the nurse's timesheets (last ~6 months) joined to shift/facility info via the admin client (nurse-page pattern) — **excluding signature columns**.
 - `NurseHoursClient`: weekly + monthly totals at top; week-by-week list of rows — date, facility, clock in/out, hours, `Manual`/`Admin` badges.
 - Past confirmed shifts with a missing punch render a warning row linking back to My Schedule to complete the punch flow.
+- **Print for personal records:** start/end date inputs + a "Print Timesheet" button that navigates to `/nurse/hours/print?start=YYYY-MM-DD&end=YYYY-MM-DD`. That page reuses the nurse layout (auth guard stays intact) but hides all nav chrome via print CSS (`print:hidden` on `SidebarNav` and any page furniture), rendering only: nurse name, then one block per shift — facility, date, scheduled time, clock in/out time + method badge, contact name/title, and **both signature images** (clock-in and clock-out). A "Print" button calls `window.print()`; that button is also `print:hidden`. Nurses can only ever request their own range — no `nurseId` param, always scoped to the caller.
 
 ---
 
@@ -147,9 +149,10 @@ Confirmation state; card now shows **"Clocked in at 6:58 AM ✓"** plus a **"Clo
   - Nurse, facility, date, scheduled times.
   - Actual clock in/out, actual hours, variance (= actual hours − scheduled hours, shown signed, e.g. `+0.5h` / `−0.25h`).
   - Method badges (`Manual` / `Admin`).
-  - **"✓ signed"** indicator → modal showing the drawn signature(s) + contact name/title (signature fetched lazily by timesheet id — this is the only place signatures are read).
+  - **"✓ signed"** indicator → modal showing the drawn signature(s) + contact name/title (signature fetched lazily by timesheet id — this was the only place signatures were read before print support was added below).
   - Past shifts with missing punches show a warning + inline **Add/Edit** (opens a small form for date+time; saves as `admin` method).
 - Dashboard staff-activity hours (`AgencyDashboardClient`) switch to actual-when-available.
+- **Print a nurse's timesheet:** a nurse selector + start/end date inputs above the table, plus a "Print Timesheet" button that navigates to `/agency/[agencyId]/timesheets/print?nurseId=X&start=YYYY-MM-DD&end=YYYY-MM-DD`. Same rendering as the nurse-side print page (§3) — facility, date, scheduled time, clock in/out + method badge, contact name/title, both signature images per shift — reusing the agency layout with nav chrome hidden via print CSS. Server-side ownership check: `nurseId` must belong to this agency's roster (`agency_nurse_relationships`), same pattern as every other agency-scoped nurse lookup.
 
 ---
 
@@ -183,6 +186,12 @@ Body: `{ claim_id, clock_in_time?: string, clock_out_time?: string }` (at least 
 
 - Ownership check; returns the signature data-URLs + contact fields for one timesheet. Keeps blobs out of every list payload.
 
+### `GET /api/timesheets/print?nurseId=X&start=YYYY-MM-DD&end=YYYY-MM-DD` — nurse or agency_admin (or demo)
+
+- **Nurse caller:** `nurseId` omitted (or must equal the caller's own nurse profile — 403 otherwise); scoped to the caller's own timesheets only.
+- **agency_admin caller:** `nurseId` required; ownership-checked against `agency_nurse_relationships` for the caller's agency (403 if not on the roster).
+- Returns full rows for confirmed claims in the date range — shift/facility/nurse info **plus signature data-URLs and contact name/title for both punches**. This is the one list-shaped endpoint allowed to include signature blobs (alongside the single-timesheet signature endpoint above), because it's a bounded, user-initiated export for a specific nurse and range, not a general list view.
+
 ---
 
 ## 6. Reporting changes
@@ -206,7 +215,7 @@ Body: `{ claim_id, clock_in_time?: string, clock_out_time?: string }` (at least 
 
 | File | What |
 |---|---|
-| `supabase/migrations/005_timesheets.sql` | New table (run manually in SQL Editor) |
+| `supabase/migrations/008_timesheets.sql` | New table (run manually in SQL Editor) |
 | `src/lib/supabase/types.ts` | Add `shift_timesheets` types |
 | `src/components/timesheets/SignaturePad.tsx` | Vanilla canvas, pointer events, Clear, exports PNG data-URL (~100 lines, no library) |
 | `src/components/timesheets/ClockPunchModal.tsx` | 3-step flow (details+contact → signature handoff → done); shared by in and out |
@@ -214,10 +223,14 @@ Body: `{ claim_id, clock_in_time?: string, clock_out_time?: string }` (at least 
 | `src/app/(nurse)/nurse/schedule/page.tsx` | Fetch timesheets for the nurse's claims; pass down |
 | `src/app/(nurse)/nurse/hours/page.tsx` + `NurseHoursClient.tsx` | My Hours page |
 | `src/app/(agency)/agency/[agencyId]/timesheets/page.tsx` + `TimesheetsClient.tsx` | Agency Timesheets page |
+| `src/app/(nurse)/nurse/hours/print/page.tsx` | Nurse print view (date range from query params) |
+| `src/app/(agency)/agency/[agencyId]/timesheets/print/page.tsx` | Agency print view (nurse + date range from query params) |
+| `src/components/timesheets/TimesheetPrintView.tsx` | Shared print-layout component (shift rows + signature images + `print:hidden` Print button); used by both print pages |
 | `src/app/api/timesheets/punch/route.ts` | Nurse punch |
 | `src/app/api/timesheets/admin-entry/route.ts` | Admin add/correct |
 | `src/app/api/timesheets/route.ts` | Month list for agency page |
 | `src/app/api/timesheets/[id]/signature/route.ts` | Lazy signature fetch |
+| `src/app/api/timesheets/print/route.ts` | Date-range fetch incl. signatures, for the print pages |
 | `src/app/api/shifts/export/route.ts` | New CSV columns + actual-pay rule |
 | `(agency)/.../page.tsx` + `AgencyDashboardClient.tsx` | Actual-when-available hours |
 | Nurse + agency layouts | New nav links |
@@ -259,7 +272,7 @@ Notification dispatches: none added (decision below).
 
 ## 10. Verification plan (manual, per project convention — no test suite)
 
-1. Run migration 005 in Supabase SQL Editor; confirm table exists.
+1. Run migration 008 in Supabase SQL Editor; confirm table exists.
 2. `npm run dev`; as a nurse with a confirmed shift today: verify Clock In appears only within 30 min of start; punch live → sign → confirm; card shows clocked-in state; clock out → hours computed.
 3. Manual path: on a confirmed shift already started, use "enter time manually", verify `manual` badge appears on Timesheets/My Hours.
 4. As agency admin: Timesheets page shows the rows, variance, badges; signature modal renders the drawing; add a missing punch on a past shift → `Admin` badge.
@@ -267,4 +280,5 @@ Notification dispatches: none added (decision below).
 6. CSV export: new columns populated; Total Pay reflects actual hours on completed timesheets.
 7. Overnight check: shift 19:00–07:00, clock in 18:55, clock out 07:10 next day → actual hours ≈ 12.25, not negative.
 8. Demo mode: launch demo, punch as demo nurse, view Timesheets as demo agency admin.
-9. `npx tsc --noEmit` and `npm run lint` pass.
+9. Print: as the nurse, pick a date range on My Hours and print — confirm nav chrome is hidden, both signature images render, times/facility/date/contact all correct. Repeat as agency admin from the Timesheets page for a specific nurse. Confirm a nurse cannot pull another nurse's print view by editing the `nurseId` query param (403).
+10. `npx tsc --noEmit` and `npm run lint` pass.
