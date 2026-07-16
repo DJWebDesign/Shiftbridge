@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import MassTextModal from '@/components/agency/MassTextModal'
+import AddressMatchAlert from '@/components/placeholders/AddressMatchAlert'
 import { CredentialBadge, TierBadge } from '@/components/ui/Badge'
 import { Card, CardHeader, StatTile } from '@/components/ui/Card'
 
@@ -18,6 +19,7 @@ export interface ShiftSummary {
   facility_name: string | null
   nurse_name: string | null
   claim_status: string | null
+  is_placeholder: boolean
 }
 
 export interface CredentialAlert {
@@ -76,6 +78,13 @@ export interface PendingApprovalClaim {
   facility_name: string
 }
 
+export interface PossibleConnection {
+  id: string  // placeholder id
+  name: string  // placeholder name
+  matched_facility_id: string
+  matched_facility_name: string
+}
+
 interface Props {
   agencyId: string
   month: string  // yyyy-mm
@@ -89,6 +98,7 @@ interface Props {
   staffSummaries: StaffSummary[]
   fillRateData: FillRateRow[]
   pendingApprovalClaims: PendingApprovalClaim[]
+  possibleConnections: PossibleConnection[]
 }
 
 function fmt12(time: string) {
@@ -143,6 +153,7 @@ export default function AgencyDashboardClient({
   staffSummaries,
   fillRateData,
   pendingApprovalClaims: initialPendingApproval,
+  possibleConnections: initialPossibleConnections,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('confirmed')
   const [credTab, setCredTab] = useState<CredPipelineTab>('urgent')
@@ -151,6 +162,11 @@ export default function AgencyDashboardClient({
   const [pendingApproval, setPendingApproval] = useState<PendingApprovalClaim[]>(initialPendingApproval)
   const [actioningClaim, setActioningClaim] = useState<string | null>(null)
   const [approvalError, setApprovalError] = useState<string | null>(null)
+  const [possibleConnections, setPossibleConnections] = useState<PossibleConnection[]>(initialPossibleConnections)
+
+  function handleConnectionRequestSent(placeholderId: string) {
+    setPossibleConnections(p => p.filter(c => c.id !== placeholderId))
+  }
 
   async function handleApprove(claimId: string) {
     setActioningClaim(claimId)
@@ -255,6 +271,35 @@ export default function AgencyDashboardClient({
         </div>
       )}
 
+      {/* Possible Facility Connections */}
+      {possibleConnections.length > 0 && (
+        <Card>
+          <CardHeader
+            title={
+              <span className="flex items-center gap-2">
+                Possible Facility Connections
+                <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-1.5 py-0.5 rounded-full">{possibleConnections.length}</span>
+              </span>
+            }
+            action={<Link href={`/agency/${agencyId}/facilities`} className="text-xs text-brand hover:underline">View all →</Link>}
+          />
+          <div className="divide-y divide-line">
+            {possibleConnections.map(pc => (
+              <div key={pc.id} className="px-5 py-3">
+                <p className="text-sm font-medium text-ink">{pc.name}</p>
+                <AddressMatchAlert
+                  placeholderId={pc.id}
+                  placeholderName={pc.name}
+                  matchedFacilityName={pc.matched_facility_name}
+                  connectionStatus="match_detected"
+                  onRequestSent={handleConnectionRequestSent}
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Financial Snapshot */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatTile label="Confirmed Shifts" value={confirmedShifts.length} caption="this month" accent />
@@ -316,8 +361,12 @@ export default function AgencyDashboardClient({
               <div key={shift.id} className="flex items-center gap-4 px-5 py-3 hover:bg-brand-tint">
                 <div className="w-16 text-xs text-ink-3 shrink-0 tabular-nums">{formatDate(shift.shift_date)}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink truncate">
+                  <p className="text-sm font-medium text-ink truncate flex items-center gap-1.5">
                     {shift.facility_name ?? 'Unknown Facility'}
+                    {shift.is_placeholder && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                        style={{ background: '#E0E7FF', color: '#4338CA' }}>PH</span>
+                    )}
                   </p>
                   {shift.nurse_name && (
                     <p className="text-xs text-ink-2">{shift.nurse_name}</p>

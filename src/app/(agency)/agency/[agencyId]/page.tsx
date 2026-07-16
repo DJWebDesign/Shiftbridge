@@ -9,6 +9,7 @@ import AgencyDashboardClient, {
   type StaffSummary,
   type FillRateRow,
   type PendingApprovalClaim,
+  type PossibleConnection,
 } from './AgencyDashboardClient'
 
 function hoursWorked(start: string, end: string): number {
@@ -93,8 +94,8 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
         .from('shifts')
         .select(`
           id, shift_date, start_time, end_time, credential_required, priority_tier, status,
-          is_late_cancel, facility_id,
-          facilities(name),
+          is_late_cancel, facility_id, placeholder_facility_id, is_placeholder,
+          facilities(name), placeholder_facilities(name),
           shift_claims(status, nurse_profile_id, nurse_profiles(profiles(full_name)))
         `)
         .in('facility_id', facilityIds)
@@ -102,6 +103,23 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
         .lte('shift_date', lastDay)
         .order('shift_date', { ascending: true })
     : Promise.resolve({ data: [] })
+
+  // Fetch this agency's own placeholder shifts this month (not tied to a connected
+  // facility_id -- these never matched the query above, so confirmed/pending/canceled
+  // placeholder shifts were invisible on this dashboard until now)
+  const placeholderShiftsPromise = admin
+    .from('shifts')
+    .select(`
+      id, shift_date, start_time, end_time, credential_required, priority_tier, status,
+      is_late_cancel, facility_id, placeholder_facility_id, is_placeholder,
+      facilities(name), placeholder_facilities(name),
+      shift_claims(status, nurse_profile_id, nurse_profiles(profiles(full_name)))
+    `)
+    .eq('agency_id', agencyId)
+    .eq('is_placeholder', true)
+    .gte('shift_date', firstDay)
+    .lte('shift_date', lastDay)
+    .order('shift_date', { ascending: true })
 
   // Fetch credential pipeline: nurses with credentials expiring within 90 days
   const alertsPromise = nurseIds.length > 0
@@ -159,6 +177,22 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
         .lte('shift_date', prevLastDay)
     : Promise.resolve({ data: [] })
 
+  // Previous month placeholder shifts for fill rate comparison
+  const prevMonthPlaceholderShiftsPromise = admin
+    .from('shifts')
+    .select('id, credential_required, status')
+    .eq('agency_id', agencyId)
+    .eq('is_placeholder', true)
+    .gte('shift_date', prevFirstDay)
+    .lte('shift_date', prevLastDay)
+
+  // Placeholder facilities with a detected address match, awaiting a connection request
+  const possibleConnectionsPromise = admin
+    .from('placeholder_facilities')
+    .select('id, name, matched_facility_id')
+    .eq('agency_id', agencyId)
+    .eq('connection_status', 'match_detected')
+
   // Pending agency-review claims (for the approval queue)
   const pendingApprovalPromise = nurseIds.length > 0
     ? admin
@@ -172,23 +206,53 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
 
   const [
     { data: rawShifts },
+    { data: rawPlaceholderShifts },
     { data: rawAlerts },
     { data: rawOpenNeeds },
     { data: dnrRecords },
     { data: nurseProfileRows },
     { data: staffClaims },
     { data: prevMonthShifts },
+    { data: prevMonthPlaceholderShifts },
     { data: rawPendingApproval },
+    { data: rawPossibleConnections },
   ] = await Promise.all([
     shiftsPromise,
+    placeholderShiftsPromise,
     alertsPromise,
     openNeedsPromise,
     dnrPromise,
     nurseProfilesPromise,
     staffClaimsPromise,
     prevMonthShiftsPromise,
+    prevMonthPlaceholderShiftsPromise,
     pendingApprovalPromise,
+    possibleConnectionsPromise,
   ])
+
+  // Resolve matched facility names for possible connections (agency has no RLS
+  // access to facilities it isn't connected to yet, so this must use the admin client)
+  const matchedFacilityIds = (rawPossibleConnections ?? [])
+    .map(p => p.matched_facility_id)
+    .filter(Boolean) as string[]
+  const matchedFacilityNameMap: Record<string, string> = {}
+  if (matchedFacilityIds.length > 0) {
+    const { data: matchedFacs } = await admin
+      .from('facilities')
+      .select('id, name')
+      .in('id', matchedFacilityIds)
+    for (const f of matchedFacs ?? []) {
+      matchedFacilityNameMap[f.id] = f.name
+    }
+  }
+  const possibleConnections: PossibleConnection[] = (rawPossibleConnections ?? [])
+    .filter(p => p.matched_facility_id && matchedFacilityNameMap[p.matched_facility_id])
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      matched_facility_id: p.matched_facility_id as string,
+      matched_facility_name: matchedFacilityNameMap[p.matched_facility_id as string],
+    }))
 
   // Process shifts into categories
   type RawShift = {
@@ -201,7 +265,10 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
     status: string
     is_late_cancel: boolean | null
     facility_id: string | null
+    placeholder_facility_id: string | null
+    is_placeholder: boolean
     facilities: { name: string } | null
+    placeholder_facilities: { name: string } | null
     shift_claims: Array<{
       status: string
       nurse_profile_id: string
@@ -222,13 +289,17 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
       priority_tier: s.priority_tier,
       status: s.status,
       is_late_cancel: s.is_late_cancel,
-      facility_name: (s.facilities as { name: string } | null)?.name ?? null,
+      facility_name: s.facilities?.name ?? s.placeholder_facilities?.name ?? null,
       nurse_name: claim?.nurse_profiles?.profiles?.full_name ?? null,
       claim_status: claim?.status ?? null,
+      is_placeholder: s.is_placeholder,
     }
   }
 
-  const allShifts = (rawShifts as unknown as RawShift[] ?? [])
+  const allShifts = [
+    ...(rawShifts as unknown as RawShift[] ?? []),
+    ...(rawPlaceholderShifts as unknown as RawShift[] ?? []),
+  ]
   const agencyNurseIdSet = new Set(nurseIds)
 
   // Only count shifts where the confirmed/pending claim belongs to one of this agency's nurses
@@ -394,7 +465,11 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
     return map
   }
   const currentFillMap = computeFillRate(allShifts as Array<{ credential_required: string; status: string }>)
-  const prevFillMap = computeFillRate((prevMonthShifts ?? []) as Array<{ credential_required: string; status: string }>)
+  const prevMonthAllShifts = [
+    ...(prevMonthShifts ?? []),
+    ...(prevMonthPlaceholderShifts ?? []),
+  ]
+  const prevFillMap = computeFillRate(prevMonthAllShifts as Array<{ credential_required: string; status: string }>)
   const fillRateData: FillRateRow[] = CREDS
     .map(cred => ({
       credential: cred,
@@ -462,6 +537,7 @@ export default async function AgencyDashboard({ params }: { params: Promise<{ ag
         staffSummaries={staffSummaries}
         fillRateData={fillRateData}
         pendingApprovalClaims={pendingApprovalClaims}
+        possibleConnections={possibleConnections}
       />
     </div>
   )

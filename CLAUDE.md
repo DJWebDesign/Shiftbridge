@@ -539,7 +539,9 @@ Nurse-facing mobile app using React Native / Expo. Agency and facility admin sid
 - sessionStorage cache key: `shiftbridge_drive_times` — survives page navigation, cleared on tab close
 
 ### Dashboards & Export (Phase 13)
-- Agency dashboard fetches current-month shifts for **connected facility IDs only** (not placeholder shifts) for the Confirmed/Pending/Canceled tabs; financial snapshot sums `hoursWorked(start, end) × payRateMap[nurseProfileId]` — only counts confirmed claims where nurse has a rate on file
+- Agency dashboard fetches current-month shifts for **connected facility IDs** (real facilities) AND the agency's own placeholder shifts (`agency_id = agencyId AND is_placeholder = true`, separate query since placeholder shifts have `facility_id = NULL`) for the Confirmed/Pending/Canceled tabs; the two result sets are merged into `allShifts` before categorization — **bug fixed 2026-07-15**: confirmed/pending/canceled placeholder shifts previously never appeared anywhere on the dashboard because the original query only matched `facility_id IN (connected facilities)`, and the "Open Needs" widget only shows `status = 'open'`, so a claimed/confirmed placeholder shift fell into a blind spot; placeholder shift rows show a small "PH" badge (`ShiftSummary.is_placeholder`) next to the facility name so they're distinguishable from a same-named real facility
+- Fill rate and financial snapshot now include placeholder shifts too (merged into `allShifts` and `prevMonthShifts`/`prevMonthPlaceholderShifts`) — a placeholder shift that never gets confirmed correctly lowers fill rate, same as an unfilled real-facility shift
+- Financial snapshot sums `hoursWorked(start, end) × payRateMap[nurseProfileId]` — only counts confirmed claims where nurse has a rate on file
 - Financial snapshot uses `base_pay_rate` from `agency_nurse_relationships` (what the agency pays the nurse), not the facility bill rate — the facility bill rate lives on `agency_facility_connections.bill_rate` and is used for the facility-side cost estimate
 - `GET /api/shifts/export` fetches all connected facility IDs for the agency first, then queries shifts `IN (facilityIds)` — avoids join-filter unreliability; same `hoursWorked` helper used for totals
 - `POST /api/notifications/mass-text` sends one `in_app` notification per nurse always, plus one `sms` if a phone number is on their profile — both dispatched via `dispatchNotifications` so they're recorded in the notifications table
@@ -548,6 +550,7 @@ Nurse-facing mobile app using React Native / Expo. Agency and facility admin sid
 - Facility bill rate is stored on `agency_facility_connections.bill_rate` (already in schema Phase 1); the `FacilityDashboardClient` computes estimated cost client-side as the user edits the rate input, then saves via `POST /api/settings/bill-rate`
 
 ### Address Matching & Connections (Phase 10)
+- Match is on `address_normalized` **alone** (as of migration `007_address_only_match.sql`) — both the DB trigger and the JS-side reverse check originally also required exact `facility_type` equality, but two independently-entered records for the same building routinely disagree on category (e.g. agency logs a placeholder as "Long-Term Care", the facility signs up as "Memory Care" for the same address) — this silently prevented real matches from ever firing. Dropping the type check is safe because a match only ever produces an in-app *suggestion*; the agency still has to send a connection request and the facility still has to explicitly accept it before anything actually links.
 - `detect_placeholder_match` trigger fires on `facilities INSERT` only — it does NOT fire on address updates, and does NOT fire on `placeholder_facilities INSERT`. Two directions to handle:
   - Facility joins after placeholder exists → DB trigger handles it
   - Placeholder created after facility already exists → `POST /api/placeholders` checks for a match in application code after insert and sets `match_detected` + dispatches in-app notification; also returns `matched_facility_name` in the response so the alert renders immediately without a page reload
@@ -906,6 +909,7 @@ supabase/migrations/
   004_nurse_drive_times.sql                           — nurse_drive_times cache table + RLS
   005_claim_status_agency_review.sql                  — widens shift_claims_status_check to allow 'agency_review' (required for claim approval workflow)
   006_schema_catchup.sql                              — records dashboard-only changes (placeholder lat/lng, house_for_facility_id, facility_notes) + REBUILDS demo_sessions to the shape demo launch expects (must run; live table had an old incompatible shape)
+  007_address_only_match.sql                          — redefines detect_placeholder_match() to match on address_normalized alone (drops the facility_type equality requirement); must run for connection matching to work — see Address Matching & Connections notes
 ```
 
 ---

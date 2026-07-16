@@ -66,15 +66,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create placeholder facility' }, { status: 500 })
   }
 
-  // Check if a real facility already exists with matching address + type.
+  // Check if a real facility already exists with matching address.
   // The DB trigger only fires on facilities INSERT (reverse direction), so we
   // handle the placeholder-created-after-facility case here in application code.
+  // Match on address alone -- facility_type is entered independently by two
+  // different people and often disagrees for the same building; a match is
+  // only ever a suggestion (agency still sends a request, facility still accepts).
   try {
     const { data: match } = await admin
       .from('facilities')
       .select('id')
       .eq('address_normalized', address_normalized)
-      .eq('facility_type', facility_type)
       .eq('status', 'active')
       .limit(1)
       .maybeSingle()
